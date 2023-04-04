@@ -1,0 +1,5 @@
+Pods
+.gradle
+.idea
+build
+*.xcworkspace
