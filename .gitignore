@@ -3,3 +3,4 @@ Pods
 .idea
 build
 *.xcworkspace
+*.hprof
