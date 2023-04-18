@@ -71,7 +71,6 @@ class LateProperty<T>(state: DataState<T> = DataState.Loading): EditableData<T> 
     private val listeners = HashSet<(DataState<T>)->Unit>()
     private var updating: Boolean = false
     override var state: DataState<T> = state
-        get() = DataState.Ready(value)
         set(value) {
             if (updating) throw ConcurrentModificationException()
             updating = true
