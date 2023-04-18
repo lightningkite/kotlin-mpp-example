@@ -19,7 +19,8 @@ sealed interface DataState<out T> {
         override fun <B> flatMap(transform: (Nothing) -> DataState<B>): DataState<B> = this
         override fun <B> map(transform: (Nothing) -> B): DataState<B> = this
     }
-    class Error(val exception: Exception): DataState<Nothing> {
+    @JvmInline
+    value class Error(val exception: Exception): DataState<Nothing> {
         override fun <B> flatMap(transform: (Nothing) -> DataState<B>): DataState<B> = this
         override fun <B> map(transform: (Nothing) -> B): DataState<B> = this
     }
