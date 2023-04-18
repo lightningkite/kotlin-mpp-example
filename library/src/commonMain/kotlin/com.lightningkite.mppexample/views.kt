@@ -57,10 +57,10 @@ interface ViewFactory<V> {
     fun textArea(text: EditableData<String>, hint: String, keyboardHints: KeyboardHints, icon: Icon? = null, validationIssue: Data<String?> = Constant(null)): V
     fun password(text: EditableData<String>, hint: String, keyboardHints: KeyboardHints, icon: Icon? = null, validationIssue: Data<String?> = Constant(null)): V
     fun <T> select(selected: EditableData<T>, options: Data<List<T>>, toString: (T)->String = { it.toString() }, validationIssue: Data<String?> = Constant(null), preferRadio: Boolean = false): V
-    fun row(vararg views: Array<V>): V
-    fun col(vararg views: Array<V>): V
+    fun row(vararg views: V): V
+    fun col(vararg views: V): V
     fun V.weight(number: Float): V
-    fun overlap(vararg views: Array<V>): V
+    fun overlap(vararg views: V): V
     fun V.scrolls(): V
     fun V.frame(horizontal: Align, vertical: Align, margin: Int): V
     fun V.shown(shown: Data<Boolean>): V
@@ -71,7 +71,7 @@ interface ViewFactory<V> {
     fun image(source: Data<Image>): V
     fun circleImage(source: Data<Image>): V
     fun pages(pages: List<Screen>): V
-    fun tabs(tabs: List<Tab>): V
+    fun sectionNavigation(tabs: List<Tab>): V
     fun stackControls(stack: EditableData<List<Screen>>): V
     fun stackView(stack: Data<List<Screen>>): V
     fun <V> list(items: EditableData<List<V>>, display: (Data<V>) -> V): V
@@ -94,3 +94,25 @@ fun <V> ViewFactory<V>.button(text: String, disabled: Data<String?> = Constant(n
 fun <V> ViewFactory<V>.icon(icon: Icon): V = icon(Constant(icon))
 fun <V> ViewFactory<V>.image(image: Image): V = image(Constant(image))
 fun <V> ViewFactory<V>.circleImage(image: Image): V = circleImage(Constant(image))
+
+@Autopath
+class Sample(val id: Int): Screen {
+    override val path: String get() = "test/path/$id"
+    override val title: String get() = "Title"
+    override val actions: Data<Action> get() = TODO()
+
+    val data = Constant("Test")
+    val shouldShow = Property(false)
+    val stack = Property<List<ViewGenerator>>(listOf())
+
+    override fun <V> generate(factory: ViewFactory<V>): V = with(factory) {
+        col(
+            h1("Hello world!"),
+            body(data).shown(shouldShow),
+            button("Go to screen") {
+                stack.value = stack.value + Sample(2)
+            }
+        )
+    }
+
+}
