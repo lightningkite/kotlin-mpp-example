@@ -47,11 +47,18 @@ kotlin {
         val commonJvmMain by creating {
             dependsOn(commonMain)
         }
+        val domMain by creating {
+            dependsOn(commonMain)
+        }
         val androidMain by getting {
             dependsOn(commonJvmMain)
         }
         val jvmMain by getting {
             dependsOn(commonJvmMain)
+            dependsOn(domMain)
+        }
+        val jsMain by getting {
+            dependsOn(domMain)
         }
     }
 
