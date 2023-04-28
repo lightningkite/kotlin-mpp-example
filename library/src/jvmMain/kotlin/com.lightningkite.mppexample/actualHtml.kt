@@ -1,6 +1,8 @@
 @file:Suppress("NO_ACTUAL_FOR_EXPECT")
 package com.lightningkite.mppexample
 
+import org.apache.commons.lang3.StringEscapeUtils.escapeHtml4
+import java.lang.Appendable
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 
@@ -264,339 +266,388 @@ actual abstract class Node {
         children.add(node)
         return node
     }
+    fun replaceChild(previous: Node, new: Node) {
+        children.set(children.indexOf(previous), new)
+    }
+    abstract fun render(out: Appendable)
 }
 actual abstract class CharacterData: Node() {}
 actual open class Text actual constructor(val data: String): CharacterData() {
     actual open val wholeText: String get() = data
+    override fun render(out: Appendable) { out.append(escapeHtml4(data)) }
 }
-actual abstract class Element: Node() {}
+actual abstract class Element: Node() {
+    actual open val tagName: String get() = "unknown"
 
-class HTMLElementImpl(val tag: String): HTMLElement() {
+    val attributes = HashMap<String, String>()
+    fun attributeString(key: String) = object: ReadWriteProperty<Node, String> {
+        override fun getValue(thisRef: Node, property: KProperty<*>): String = attributes[key] ?: ""
+        override fun setValue(thisRef: Node, property: KProperty<*>, value: String) { attributes[key] = value }
+    }
+    fun attributeDouble(key: String) = object: ReadWriteProperty<Node, Double> {
+        override fun getValue(thisRef: Node, property: KProperty<*>): Double = attributes[key]?.toDoubleOrNull() ?: 0.0
+        override fun setValue(thisRef: Node, property: KProperty<*>, value: Double) { attributes[key] = value.toString() }
+    }
+    fun attributeInt(key: String) = object: ReadWriteProperty<Node, Int> {
+        override fun getValue(thisRef: Node, property: KProperty<*>): Int = attributes[key]?.toIntOrNull() ?: 0
+        override fun setValue(thisRef: Node, property: KProperty<*>, value: Int) { attributes[key] = value.toString() }
+    }
+    fun attributeBoolean(key: String) = object: ReadWriteProperty<Node, Boolean> {
+        override fun getValue(thisRef: Node, property: KProperty<*>): Boolean = !attributes[key].isNullOrBlank()
+        override fun setValue(thisRef: Node, property: KProperty<*>, value: Boolean) {
+            if(value) attributes[key] = "true"
+            else attributes.remove(key)
+        }
+    }
+
+    override fun render(out: Appendable) {
+        out.append('<')
+        out.append(tagName)
+        attributes.entries.forEach { (key, value) ->
+            out.append(' ')
+            out.append(key)
+            out.append("='")
+            out.append(value)
+            out.append('\'')
+        }
+        if(children.isEmpty()) {
+            out.append("/>")
+        } else {
+            out.append('>')
+            children.forEach { it.render(out) }
+            out.append("</")
+            out.append(tagName)
+            out.append('>')
+        }
+    }
+}
+
+class HTMLElementImpl(override val tagName: String): HTMLElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLElement: Element() {
-    actual open var accessKey: String = ""  // accesskey
-    actual open var className: String = ""  // class
-    actual open var dir: String = ""  // dir
-    actual open var draggable: Boolean = false  // draggable
-    actual open var hidden: Boolean = false  // hidden
-    actual open var id: String = ""  // id
-    actual open var lang: String = ""  // lang
-    actual open var slot: String = ""  // slot
-    actual open var spellcheck: Boolean = false  // spellcheck
+    actual open var accessKey: String by attributeString("accesskey")
+    actual open var className: String by attributeString("class")
+    actual open var dir: String by attributeString("dir")
+    actual open var draggable: Boolean by attributeBoolean("draggable")
+    actual open var hidden: Boolean by attributeBoolean("hidden")
+    actual open var id: String by attributeString("id")
+    actual open var lang: String by attributeString("lang")
+    actual open var slot: String by attributeString("slot")
+    actual open var spellcheck: Boolean by attributeBoolean("spellcheck")
     actual abstract val style: CSSStyleDeclaration  // style
-    actual open var title: String = ""  // title
-    actual open var translate: Boolean = false  // translate
+    actual open var title: String by attributeString("title")
+    actual open var translate: Boolean by attributeBoolean("translate")
 }
 
-class HTMLAnchorElementImpl(): HTMLAnchorElement() {
+class HTMLAnchorElementImpl(override val tagName: String): HTMLAnchorElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
     override var href: String = ""
 }
 actual abstract class HTMLAnchorElement: HTMLElement() {
-    actual open var download: String = ""  // download
+    actual open var download: String by attributeString("download")
     actual abstract var href: String  // href
-    actual open var hreflang: String = ""  // hreflang
-    actual open var ping: String = ""  // ping
-    actual open var rel: String = ""  // rel
-    actual open var shape: String = ""  // shape
-    actual open var target: String = ""  // target
+    actual open var hreflang: String by attributeString("hreflang")
+    actual open var ping: String by attributeString("ping")
+    actual open var rel: String by attributeString("rel")
+    actual open var shape: String by attributeString("shape")
+    actual open var target: String by attributeString("target")
 }
-class HTMLAppletElementImpl(): HTMLAppletElement() {
+class HTMLAppletElementImpl(override val tagName: String): HTMLAppletElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLAppletElement: HTMLElement() {
-    actual open var align: String = ""  // align
-    actual open var alt: String = ""  // alt
-    actual open var code: String = ""  // code
+    actual open var align: String by attributeString("align")
+    actual open var alt: String by attributeString("alt")
+    actual open var code: String by attributeString("code")
 }
-class HTMLAreaElementImpl(): HTMLAreaElement() {
+class HTMLAreaElementImpl(override val tagName: String): HTMLAreaElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
     override var href: String = ""
 }
 actual abstract class HTMLAreaElement: HTMLElement() {
-    actual open var alt: String = ""  // alt
-    actual open var coords: String = ""  // coords
-    actual open var download: String = ""  // download
+    actual open var alt: String by attributeString("alt")
+    actual open var coords: String by attributeString("coords")
+    actual open var download: String by attributeString("download")
     actual abstract var href: String  // href
-    actual open var ping: String = ""  // ping
-    actual open var rel: String = ""  // rel
-    actual open var shape: String = ""  // shape
-    actual open var target: String = ""  // target
+    actual open var ping: String by attributeString("ping")
+    actual open var rel: String by attributeString("rel")
+    actual open var shape: String by attributeString("shape")
+    actual open var target: String by attributeString("target")
 }
-class HTMLMediaElementImpl(): HTMLMediaElement() {
+class HTMLMediaElementImpl(override val tagName: String): HTMLMediaElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLMediaElement: HTMLElement() {
-    actual open var autoplay: Boolean = false  // autoplay
-//  actual open var buffered: String = ""  // buffered
-    actual open var controls: Boolean = false  // controls
-    actual open var loop: Boolean = false  // loop
-    actual open var muted: Boolean = false  // muted
-    actual open var preload: String = ""  // preload
-    actual open var src: String = ""  // src
+    actual open var autoplay: Boolean by attributeBoolean("autoplay")
+//  actual open var buffered: String by attributeString("buffered")
+    actual open var controls: Boolean by attributeBoolean("controls")
+    actual open var loop: Boolean by attributeBoolean("loop")
+    actual open var muted: Boolean by attributeBoolean("muted")
+    actual open var preload: String by attributeString("preload")
+    actual open var src: String by attributeString("src")
 }
-class HTMLAudioElementImpl(): HTMLAudioElement() {
+class HTMLAudioElementImpl(override val tagName: String): HTMLAudioElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLAudioElement: HTMLMediaElement() {
 }
-class HTMLBaseElementImpl(): HTMLBaseElement() {
+class HTMLBaseElementImpl(override val tagName: String): HTMLBaseElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLBaseElement: HTMLElement() {
-    actual open var href: String = ""  // href
-    actual open var target: String = ""  // target
+    actual open var href: String by attributeString("href")
+    actual open var target: String by attributeString("target")
 }
-class HTMLBodyElementImpl(): HTMLBodyElement() {
+class HTMLBodyElementImpl(override val tagName: String): HTMLBodyElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLBodyElement: HTMLElement() {
-    actual open var background: String = ""  // background
+    actual open var background: String by attributeString("background")
 }
-class HTMLButtonElementImpl(): HTMLButtonElement() {
+class HTMLButtonElementImpl(override val tagName: String): HTMLButtonElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLButtonElement: HTMLElement() {
-//  actual open var autofocus: String = ""  // autofocus
-    actual open var disabled: Boolean = false  // disabled
-//  actual open var form: String = ""  // form
-    actual open var formAction: String = ""  // formaction
-    actual open var formEnctype: String = ""  // formenctype
-    actual open var formMethod: String = ""  // formmethod
-    actual open var formNoValidate: Boolean = false  // formnovalidate
-    actual open var formTarget: String = ""  // formtarget
-    actual open var name: String = ""  // name
-    actual open var type: String = ""  // type
-    actual open var value: String = ""  // value
+//  actual open var autofocus: String by attributeString("autofocus")
+    actual open var disabled: Boolean by attributeBoolean("disabled")
+//  actual open var form: String by attributeString("form")
+    actual open var formAction: String by attributeString("formaction")
+    actual open var formEnctype: String by attributeString("formenctype")
+    actual open var formMethod: String by attributeString("formmethod")
+    actual open var formNoValidate: Boolean by attributeBoolean("formnovalidate")
+    actual open var formTarget: String by attributeString("formtarget")
+    actual open var name: String by attributeString("name")
+    actual open var type: String by attributeString("type")
+    actual open var value: String by attributeString("value")
 }
-class HTMLCanvasElementImpl(): HTMLCanvasElement() {
+class HTMLCanvasElementImpl(override val tagName: String): HTMLCanvasElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLCanvasElement: HTMLElement() {
-    actual open var height: Int = 0  // height
-    actual open var width: Int = 0  // width
+    actual open var height: Int by attributeInt("height")
+    actual open var width: Int by attributeInt("width")
 }
-class HTMLTableCaptionElementImpl(): HTMLTableCaptionElement() {
+class HTMLTableCaptionElementImpl(override val tagName: String): HTMLTableCaptionElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLTableCaptionElement: HTMLElement() {
-    actual open var align: String = ""  // align
+    actual open var align: String by attributeString("align")
 }
-class HTMLTableColElementImpl(): HTMLTableColElement() {
+class HTMLTableColElementImpl(override val tagName: String): HTMLTableColElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLTableColElement: HTMLElement() {
-    actual open var align: String = ""  // align
-    actual open var span: Int = 0  // span
+    actual open var align: String by attributeString("align")
+    actual open var span: Int by attributeInt("span")
 }
-class HTMLDataElementImpl(): HTMLDataElement() {
+class HTMLDataElementImpl(override val tagName: String): HTMLDataElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLDataElement: HTMLElement() {
-    actual open var value: String = ""  // value
+    actual open var value: String by attributeString("value")
 }
-class HTMLModElementImpl(): HTMLModElement() {
+class HTMLModElementImpl(override val tagName: String): HTMLModElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLModElement: HTMLElement() {
-    actual open var cite: String = ""  // cite
-    actual open var dateTime: String = ""  // datetime
+    actual open var cite: String by attributeString("cite")
+    actual open var dateTime: String by attributeString("datetime")
 }
-class HTMLDetailsElementImpl(): HTMLDetailsElement() {
+class HTMLDetailsElementImpl(override val tagName: String): HTMLDetailsElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLDetailsElement: HTMLElement() {
-    actual open var open: Boolean = false  // open
+    actual open var open: Boolean by attributeBoolean("open")
 }
-class HTMLDialogElementImpl(): HTMLDialogElement() {
+class HTMLDialogElementImpl(override val tagName: String): HTMLDialogElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLDialogElement: HTMLElement() {
-    actual open var open: Boolean = false  // open
+    actual open var open: Boolean by attributeBoolean("open")
 }
-class HTMLEmbedElementImpl(): HTMLEmbedElement() {
+class HTMLEmbedElementImpl(override val tagName: String): HTMLEmbedElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLEmbedElement: HTMLElement() {
-    actual open var height: String = ""  // height
-    actual open var src: String = ""  // src
-    actual open var type: String = ""  // type
-    actual open var width: String = ""  // width
+    actual open var height: String by attributeString("height")
+    actual open var src: String by attributeString("src")
+    actual open var type: String by attributeString("type")
+    actual open var width: String by attributeString("width")
 }
-class HTMLFieldSetElementImpl(): HTMLFieldSetElement() {
+class HTMLFieldSetElementImpl(override val tagName: String): HTMLFieldSetElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLFieldSetElement: HTMLElement() {
-    actual open var disabled: Boolean = false  // disabled
-//  actual open var form: String = ""  // form
-    actual open var name: String = ""  // name
+    actual open var disabled: Boolean by attributeBoolean("disabled")
+//  actual open var form: String by attributeString("form")
+    actual open var name: String by attributeString("name")
 }
-class HTMLFontElementImpl(): HTMLFontElement() {
+class HTMLFontElementImpl(override val tagName: String): HTMLFontElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLFontElement: HTMLElement() {
-    actual open var color: String = ""  // color
+    actual open var color: String by attributeString("color")
 }
-class HTMLFormElementImpl(): HTMLFormElement() {
+class HTMLFormElementImpl(override val tagName: String): HTMLFormElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLFormElement: HTMLElement() {
-    actual open var acceptCharset: String = ""  // accept-charset
-    actual open var action: String = ""  // action
-    actual open var autocomplete: String = ""  // autocomplete
-    actual open var enctype: String = ""  // enctype
-    actual open var method: String = ""  // method
-    actual open var name: String = ""  // name
-    actual open var noValidate: Boolean = false  // novalidate
-    actual open var target: String = ""  // target
+    actual open var acceptCharset: String by attributeString("accept-charset")
+    actual open var action: String by attributeString("action")
+    actual open var autocomplete: String by attributeString("autocomplete")
+    actual open var enctype: String by attributeString("enctype")
+    actual open var method: String by attributeString("method")
+    actual open var name: String by attributeString("name")
+    actual open var noValidate: Boolean by attributeBoolean("novalidate")
+    actual open var target: String by attributeString("target")
 }
-class HTMLHRElementImpl(): HTMLHRElement() {
+class HTMLHRElementImpl(override val tagName: String): HTMLHRElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLHRElement: HTMLElement() {
-    actual open var align: String = ""  // align
-    actual open var color: String = ""  // color
+    actual open var align: String by attributeString("align")
+    actual open var color: String by attributeString("color")
 }
-class HTMLIFrameElementImpl(): HTMLIFrameElement() {
+class HTMLIFrameElementImpl(override val tagName: String): HTMLIFrameElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLIFrameElement: HTMLElement() {
-    actual open var align: String = ""  // align
-//  actual open var allow: String = ""  // allow
-//  actual open var csp: String = ""  // csp Experimental
-    actual open var height: String = ""  // height
-//  actual open var loading: String = ""  // loading Experimental
-    actual open var name: String = ""  // name
-//  actual open var referrerpolicy: String = ""  // referrerpolicy
-//  actual open var sandbox: String = ""  // sandbox
-    actual open var src: String = ""  // src
-    actual open var srcdoc: String = ""  // srcdoc
-    actual open var width: String = ""  // width
+    actual open var align: String by attributeString("align")
+//  actual open var allow: String by attributeString("allow")
+//  actual open var csp: String by attributeString("csp") Experimental
+    actual open var height: String by attributeString("height")
+//  actual open var loading: String by attributeString("loading") Experimental
+    actual open var name: String by attributeString("name")
+//  actual open var referrerpolicy: String by attributeString("referrerpolicy")
+//  actual open var sandbox: String by attributeString("sandbox")
+    actual open var src: String by attributeString("src")
+    actual open var srcdoc: String by attributeString("srcdoc")
+    actual open var width: String by attributeString("width")
 }
-class HTMLImageElementImpl(): HTMLImageElement() {
+class HTMLImageElementImpl(override val tagName: String): HTMLImageElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLImageElement: HTMLElement() {
-    actual open var align: String = ""  // align
-    actual open var alt: String = ""  // alt
-    actual open var border: String = ""  // border
-    actual open var height: Int = 0  // height
-    actual open var isMap: Boolean = false  // ismap
-//  actual open var loading: String = ""  // loading Experimental
-//  actual open var referrerpolicy: String = ""  // referrerpolicy
-    actual open var sizes: String = ""  // sizes
-    actual open var src: String = ""  // src
-    actual open var srcset: String = ""  // srcset
-    actual open var useMap: String = ""  // usemap
-    actual open var width: Int = 0  // width
+    actual open var align: String by attributeString("align")
+    actual open var alt: String by attributeString("alt")
+    actual open var border: String by attributeString("border")
+    actual open var height: Int by attributeInt("height")
+    actual open var isMap: Boolean by attributeBoolean("ismap")
+//  actual open var loading: String by attributeString("loading") Experimental
+//  actual open var referrerpolicy: String by attributeString("referrerpolicy")
+    actual open var sizes: String by attributeString("sizes")
+    actual open var src: String by attributeString("src")
+    actual open var srcset: String by attributeString("srcset")
+    actual open var useMap: String by attributeString("usemap")
+    actual open var width: Int by attributeInt("width")
 }
-class HTMLInputElementImpl(): HTMLInputElement() {
+class HTMLInputElementImpl(override val tagName: String): HTMLInputElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLInputElement: HTMLElement() {
-    actual open var accept: String = ""  // accept
-    actual open var alt: String = ""  // alt
-    actual open var autocomplete: String = ""  // autocomplete
-    actual open var autofocus: Boolean = false  // autofocus
-    actual open var checked: Boolean = false  // checked
-    actual open var dirName: String = ""  // dirname
-    actual open var disabled: Boolean = false  // disabled
-    //  actual open var form: String = ""  // form
-    actual open var formAction: String = ""  // formaction
-    actual open var formEnctype: String = ""  // formenctype
-    actual open var formMethod: String = ""  // formmethod
-    actual open var formNoValidate: Boolean = false  // formnovalidate
-    actual open var formTarget: String = ""  // formtarget
-    actual open var height: Int = 0  // height
-    //  actual open var list: String = ""  // list
-    actual open var max: String = ""  // max
-    actual open var maxLength: Int = 0  // maxlength
-    actual open var minLength: Int = 0  // minlength
-    actual open var min: String = ""  // min
-    actual open var multiple: Boolean = false  // multiple
-    actual open var name: String = ""  // name
-    actual open var pattern: String = ""  // pattern
-    actual open var placeholder: String = ""  // placeholder
-    actual open var readOnly: Boolean = false  // readonly
-    actual open var required: Boolean = false  // required
-    actual open var size: Int = 0  // size
-    actual open var src: String = ""  // src
-    actual open var step: String = ""  // step
-    actual open var type: String = ""  // type
-    actual open var useMap: String = ""  // usemap
-    actual open var value: String = ""  // value
-    actual open var width: Int = 0  // width
+    actual open var accept: String by attributeString("accept")
+    actual open var alt: String by attributeString("alt")
+    actual open var autocomplete: String by attributeString("autocomplete")
+    actual open var autofocus: Boolean by attributeBoolean("autofocus")
+    actual open var checked: Boolean by attributeBoolean("checked")
+    actual open var dirName: String by attributeString("dirname")
+    actual open var disabled: Boolean by attributeBoolean("disabled")
+    //  actual open var form: String by attributeString("form")
+    actual open var formAction: String by attributeString("formaction")
+    actual open var formEnctype: String by attributeString("formenctype")
+    actual open var formMethod: String by attributeString("formmethod")
+    actual open var formNoValidate: Boolean by attributeBoolean("formnovalidate")
+    actual open var formTarget: String by attributeString("formtarget")
+    actual open var height: Int by attributeInt("height")
+    //  actual open var list: String by attributeString("list")
+    actual open var max: String by attributeString("max")
+    actual open var maxLength: Int by attributeInt("maxlength")
+    actual open var minLength: Int by attributeInt("minlength")
+    actual open var min: String by attributeString("min")
+    actual open var multiple: Boolean by attributeBoolean("multiple")
+    actual open var name: String by attributeString("name")
+    actual open var pattern: String by attributeString("pattern")
+    actual open var placeholder: String by attributeString("placeholder")
+    actual open var readOnly: Boolean by attributeBoolean("readonly")
+    actual open var required: Boolean by attributeBoolean("required")
+    actual open var size: Int by attributeInt("size")
+    actual open var src: String by attributeString("src")
+    actual open var step: String by attributeString("step")
+    actual open var type: String by attributeString("type")
+    actual open var useMap: String by attributeString("usemap")
+    actual open var value: String by attributeString("value")
+    actual open var width: Int by attributeInt("width")
 }
-class HTMLKeygenElementImpl(): HTMLKeygenElement() {
+class HTMLKeygenElementImpl(override val tagName: String): HTMLKeygenElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLKeygenElement: HTMLElement() {
-    actual open var autofocus: Boolean = false  // autofocus
-    actual open var challenge: String = ""  // challenge
-    actual open var disabled: Boolean = false  // disabled
-//  actual open var form: String = ""  // form
-    actual open var keytype: String = ""  // keytype
-    actual open var name: String = ""  // name
+    actual open var autofocus: Boolean by attributeBoolean("autofocus")
+    actual open var challenge: String by attributeString("challenge")
+    actual open var disabled: Boolean by attributeBoolean("disabled")
+//  actual open var form: String by attributeString("form")
+    actual open var keytype: String by attributeString("keytype")
+    actual open var name: String by attributeString("name")
 }
-class HTMLLabelElementImpl(): HTMLLabelElement() {
+class HTMLLabelElementImpl(override val tagName: String): HTMLLabelElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLLabelElement: HTMLElement() {
-    actual open var htmlFor: String = ""  // for
-//  actual open var form: String = ""  // form
+    actual open var htmlFor: String by attributeString("for")
+//  actual open var form: String by attributeString("form")
 }
-class HTMLLIElementImpl(): HTMLLIElement() {
+class HTMLLIElementImpl(override val tagName: String): HTMLLIElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLLIElement: HTMLElement() {
-    actual open var value: Int = 0  // value
+    actual open var value: Int by attributeInt("value")
 }
-class HTMLLinkElementImpl(): HTMLLinkElement() {
+class HTMLLinkElementImpl(override val tagName: String): HTMLLinkElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLLinkElement: HTMLElement() {
     actual open var crossOrigin: String? = null  // crossorigin
-    actual open var href: String = ""  // href
-    actual open var hreflang: String = ""  // hreflang
-    actual open var media: String = ""  // media
-    actual open var referrerPolicy: String = ""  // referrerpolicy
-    actual open var rel: String = ""  // rel
-//  actual open var sizes: String = ""  // sizes
-    actual open var type: String = ""  // type
+    actual open var href: String by attributeString("href")
+    actual open var hreflang: String by attributeString("hreflang")
+    actual open var media: String by attributeString("media")
+    actual open var referrerPolicy: String by attributeString("referrerpolicy")
+    actual open var rel: String by attributeString("rel")
+//  actual open var sizes: String by attributeString("sizes")
+    actual open var type: String by attributeString("type")
 }
-class HTMLMapElementImpl(): HTMLMapElement() {
+class HTMLMapElementImpl(override val tagName: String): HTMLMapElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLMapElement: HTMLElement() {
-    actual open var name: String = ""  // name
+    actual open var name: String by attributeString("name")
 }
-class HTMLMarqueeElementImpl(): HTMLMarqueeElement() {
+class HTMLMarqueeElementImpl(override val tagName: String): HTMLMarqueeElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLMarqueeElement: HTMLElement() {
-    actual open var bgColor: String = ""  // bgcolor
-    actual open var loop: Int = 0  // loop
+    actual open var bgColor: String by attributeString("bgcolor")
+    actual open var loop: Int by attributeInt("loop")
 }
-class HTMLMenuElementImpl(): HTMLMenuElement() {
+class HTMLMenuElementImpl(override val tagName: String): HTMLMenuElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLMenuElement: HTMLElement() {
-    actual open var type: String = ""  // type
+    actual open var type: String by attributeString("type")
 }
-class HTMLMetaElementImpl(): HTMLMetaElement() {
+class HTMLMetaElementImpl(override val tagName: String): HTMLMetaElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLMetaElement: HTMLElement() {
-    actual open var content: String = ""  // content
-    actual open var httpEquiv: String = ""  // http-equiv
-    actual open var name: String = ""  // name
+    actual open var content: String by attributeString("content")
+    actual open var httpEquiv: String by attributeString("http-equiv")
+    actual open var name: String by attributeString("name")
 }
-class HTMLMeterElementImpl(): HTMLMeterElement() {
+class HTMLMeterElementImpl(override val tagName: String): HTMLMeterElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLMeterElement: HTMLElement() {
-//  actual open var form: String = ""  // form
+//  actual open var form: String by attributeString("form")
     actual open var high: Double = 0.0  // high
     actual open var low: Double = 0.0  // low
     actual open var max: Double = 0.0  // max
@@ -604,250 +655,327 @@ actual abstract class HTMLMeterElement: HTMLElement() {
     actual open var optimum: Double = 0.0  // optimum
     actual open var value: Double = 0.0  // value
 }
-class HTMLObjectElementImpl(): HTMLObjectElement() {
+class HTMLObjectElementImpl(override val tagName: String): HTMLObjectElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLObjectElement: HTMLElement() {
-    actual open var border: String = ""  // border
-    actual open var data: String = ""  // data
-//  actual open var form: String = ""  // form
-    actual open var height: String = ""  // height
-    actual open var name: String = ""  // name
-    actual open var type: String = ""  // type
-    actual open var useMap: String = ""  // usemap
-    actual open var width: String = ""  // width
+    actual open var border: String by attributeString("border")
+    actual open var data: String by attributeString("data")
+//  actual open var form: String by attributeString("form")
+    actual open var height: String by attributeString("height")
+    actual open var name: String by attributeString("name")
+    actual open var type: String by attributeString("type")
+    actual open var useMap: String by attributeString("usemap")
+    actual open var width: String by attributeString("width")
 }
-class HTMLOListElementImpl(): HTMLOListElement() {
+class HTMLOListElementImpl(override val tagName: String): HTMLOListElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLOListElement: HTMLElement() {
-    actual open var reversed: Boolean = false  // reversed
-    actual open var start: Int = 0  // start
-    actual open var type: String = ""  // type
+    actual open var reversed: Boolean by attributeBoolean("reversed")
+    actual open var start: Int by attributeInt("start")
+    actual open var type: String by attributeString("type")
 }
-class HTMLOptGroupElementImpl(): HTMLOptGroupElement() {
+class HTMLOptGroupElementImpl(override val tagName: String): HTMLOptGroupElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLOptGroupElement: HTMLElement() {
-    actual open var disabled: Boolean = false  // disabled
-    actual open var label: String = ""  // label
+    actual open var disabled: Boolean by attributeBoolean("disabled")
+    actual open var label: String by attributeString("label")
 }
-class HTMLOptionElementImpl(): HTMLOptionElement() {
+class HTMLOptionElementImpl(override val tagName: String): HTMLOptionElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLOptionElement: HTMLElement() {
-    actual open var disabled: Boolean = false  // disabled
-    actual open var label: String = ""  // label
-    actual open var selected: Boolean = false  // selected
-    actual open var value: String = ""  // value
+    actual open var disabled: Boolean by attributeBoolean("disabled")
+    actual open var label: String by attributeString("label")
+    actual open var selected: Boolean by attributeBoolean("selected")
+    actual open var value: String by attributeString("value")
 }
-class HTMLOutputElementImpl(): HTMLOutputElement() {
+class HTMLOutputElementImpl(override val tagName: String): HTMLOutputElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLOutputElement: HTMLElement() {
-//  actual open var htmlFor: String = ""  // for
-//  actual open var form: String = ""  // form
-    actual open var name: String = ""  // name
+//  actual open var htmlFor: String by attributeString("for")
+//  actual open var form: String by attributeString("form")
+    actual open var name: String by attributeString("name")
 }
-class HTMLParamElementImpl(): HTMLParamElement() {
+class HTMLParamElementImpl(override val tagName: String): HTMLParamElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLParamElement: HTMLElement() {
-    actual open var name: String = ""  // name
-    actual open var value: String = ""  // value
+    actual open var name: String by attributeString("name")
+    actual open var value: String by attributeString("value")
 }
-class HTMLProgressElementImpl(): HTMLProgressElement() {
+class HTMLProgressElementImpl(override val tagName: String): HTMLProgressElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLProgressElement: HTMLElement() {
-//  actual open var form: String = ""  // form
+//  actual open var form: String by attributeString("form")
     actual open var max: Double = 0.0  // max
     actual open var value: Double = 0.0  // value
 }
-class HTMLQuoteElementImpl(): HTMLQuoteElement() {
+class HTMLQuoteElementImpl(override val tagName: String): HTMLQuoteElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLQuoteElement: HTMLElement() {
-    actual open var cite: String = ""  // cite
+    actual open var cite: String by attributeString("cite")
 }
-class HTMLScriptElementImpl(): HTMLScriptElement() {
+class HTMLScriptElementImpl(override val tagName: String): HTMLScriptElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLScriptElement: HTMLElement() {
-    actual open var async: Boolean = false  // async
-    actual open var charset: String = ""  // charset
+    actual open var async: Boolean by attributeBoolean("async")
+    actual open var charset: String by attributeString("charset")
     actual open var crossOrigin: String? = null  // crossorigin
-    actual open var defer: Boolean = false  // defer
-//  actual open var integrity: String = ""  // integrity
-//  actual open var referrerPolicy: String = ""  // referrerpolicy
-    actual open var src: String = ""  // src
-    actual open var type: String = ""  // type
+    actual open var defer: Boolean by attributeBoolean("defer")
+//  actual open var integrity: String by attributeString("integrity")
+//  actual open var referrerPolicy: String by attributeString("referrerpolicy")
+    actual open var src: String by attributeString("src")
+    actual open var type: String by attributeString("type")
 }
-class HTMLSelectElementImpl(): HTMLSelectElement() {
+class HTMLSelectElementImpl(override val tagName: String): HTMLSelectElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLSelectElement: HTMLElement() {
-    actual open var autocomplete: String = ""  // autocomplete
-    actual open var autofocus: Boolean = false  // autofocus
-    actual open var disabled: Boolean = false  // disabled
-//  actual open var form: String = ""  // form
-    actual open var multiple: Boolean = false  // multiple
-    actual open var name: String = ""  // name
-    actual open var required: Boolean = false  // required
-    actual open var size: Int = 0  // size
+    actual open var autocomplete: String by attributeString("autocomplete")
+    actual open var autofocus: Boolean by attributeBoolean("autofocus")
+    actual open var disabled: Boolean by attributeBoolean("disabled")
+//  actual open var form: String by attributeString("form")
+    actual open var multiple: Boolean by attributeBoolean("multiple")
+    actual open var name: String by attributeString("name")
+    actual open var required: Boolean by attributeBoolean("required")
+    actual open var size: Int by attributeInt("size")
 }
-class HTMLSourceElementImpl(): HTMLSourceElement() {
+class HTMLSourceElementImpl(override val tagName: String): HTMLSourceElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLSourceElement: HTMLElement() {
-    actual open var media: String = ""  // media
-    actual open var sizes: String = ""  // sizes
-    actual open var src: String = ""  // src
-    actual open var srcset: String = ""  // srcset
-    actual open var type: String = ""  // type
+    actual open var media: String by attributeString("media")
+    actual open var sizes: String by attributeString("sizes")
+    actual open var src: String by attributeString("src")
+    actual open var srcset: String by attributeString("srcset")
+    actual open var type: String by attributeString("type")
 }
-class HTMLStyleElementImpl(): HTMLStyleElement() {
+class HTMLStyleElementImpl(override val tagName: String): HTMLStyleElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLStyleElement: HTMLElement() {
-    actual open var media: String = ""  // media
-    actual open var type: String = ""  // type
+    actual open var media: String by attributeString("media")
+    actual open var type: String by attributeString("type")
 }
-class HTMLTableElementImpl(): HTMLTableElement() {
+class HTMLTableElementImpl(override val tagName: String): HTMLTableElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLTableElement: HTMLElement() {
-    actual open var align: String = ""  // align
-    actual open var border: String = ""  // border
-    actual open var summary: String = ""  // summary
+    actual open var align: String by attributeString("align")
+    actual open var border: String by attributeString("border")
+    actual open var summary: String by attributeString("summary")
 }
-class HTMLTableSectionElementImpl(): HTMLTableSectionElement() {
+class HTMLTableSectionElementImpl(override val tagName: String): HTMLTableSectionElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLTableSectionElement: HTMLElement() {
-    actual open var align: String = ""  // align
+    actual open var align: String by attributeString("align")
 }
-class HTMLTableCellElementImpl(): HTMLTableCellElement() {
+class HTMLTableCellElementImpl(override val tagName: String): HTMLTableCellElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLTableCellElement: HTMLElement() {
-    actual open var align: String = ""  // align
-    actual open var colSpan: Int = 0  // colspan
-    actual open var headers: String = ""  // headers
-    actual open var rowSpan: Int = 0  // rowspan
+    actual open var align: String by attributeString("align")
+    actual open var colSpan: Int by attributeInt("colspan")
+    actual open var headers: String by attributeString("headers")
+    actual open var rowSpan: Int by attributeInt("rowspan")
 }
-class HTMLTextAreaElementImpl(): HTMLTextAreaElement() {
+class HTMLTextAreaElementImpl(override val tagName: String): HTMLTextAreaElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLTextAreaElement: HTMLElement() {
-    actual open var autocomplete: String = ""  // autocomplete
-    actual open var autofocus: Boolean = false  // autofocus
-    actual open var cols: Int = 0  // cols
-    actual open var dirName: String = ""  // dirname
-    actual open var disabled: Boolean = false  // disabled
-//  actual open var form: String = ""  // form
-    actual open var inputMode: String = ""  // inputmode
-    actual open var maxLength: Int = 0  // maxlength
-    actual open var minLength: Int = 0  // minlength
-    actual open var name: String = ""  // name
-    actual open var placeholder: String = ""  // placeholder
-    actual open var readOnly: Boolean = false  // readonly
-    actual open var required: Boolean = false  // required
-    actual open var rows: Int = 0  // rows
-    actual open var wrap: String = ""  // wrap
+    actual open var autocomplete: String by attributeString("autocomplete")
+    actual open var autofocus: Boolean by attributeBoolean("autofocus")
+    actual open var cols: Int by attributeInt("cols")
+    actual open var dirName: String by attributeString("dirname")
+    actual open var disabled: Boolean by attributeBoolean("disabled")
+//  actual open var form: String by attributeString("form")
+    actual open var inputMode: String by attributeString("inputmode")
+    actual open var maxLength: Int by attributeInt("maxlength")
+    actual open var minLength: Int by attributeInt("minlength")
+    actual open var name: String by attributeString("name")
+    actual open var placeholder: String by attributeString("placeholder")
+    actual open var readOnly: Boolean by attributeBoolean("readonly")
+    actual open var required: Boolean by attributeBoolean("required")
+    actual open var rows: Int by attributeInt("rows")
+    actual open var wrap: String by attributeString("wrap")
 }
-class HTMLTimeElementImpl(): HTMLTimeElement() {
+class HTMLTimeElementImpl(override val tagName: String): HTMLTimeElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLTimeElement: HTMLElement() {
-    actual open var dateTime: String = ""  // datetime
+    actual open var dateTime: String by attributeString("datetime")
 }
-class HTMLTableRowElementImpl(): HTMLTableRowElement() {
+class HTMLTableRowElementImpl(override val tagName: String): HTMLTableRowElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLTableRowElement: HTMLElement() {
-    actual open var align: String = ""  // align
+    actual open var align: String by attributeString("align")
 }
-class HTMLTrackElementImpl(): HTMLTrackElement() {
+class HTMLTrackElementImpl(override val tagName: String): HTMLTrackElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLTrackElement: HTMLElement() {
-    actual open var default: Boolean = false  // default
-    actual open var kind: String = ""  // kind
-    actual open var label: String = ""  // label
-    actual open var src: String = ""  // src
-    actual open var srclang: String = ""  // srclang
+    actual open var default: Boolean by attributeBoolean("default")
+    actual open var kind: String by attributeString("kind")
+    actual open var label: String by attributeString("label")
+    actual open var src: String by attributeString("src")
+    actual open var srclang: String by attributeString("srclang")
 }
-class HTMLVideoElementImpl(): HTMLVideoElement() {
+class HTMLVideoElementImpl(override val tagName: String): HTMLVideoElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLVideoElement: HTMLMediaElement() {
-//  actual open var buffered: String = ""  // buffered
+//  actual open var buffered: String by attributeString("buffered")
     actual open var crossOrigin: String? = null  // crossorigin
-    actual open var height: Int = 0  // height
-    actual open var playsInline: Boolean = false  // playsinline
-    actual open var poster: String = ""  // poster
-    actual open var width: Int = 0  // width
+    actual open var height: Int by attributeInt("height")
+    actual open var playsInline: Boolean by attributeBoolean("playsinline")
+    actual open var poster: String by attributeString("poster")
+    actual open var width: Int by attributeInt("width")
+}
+
+private fun createElement(tagName: String): HTMLElement {
+    return when(tagName) {
+        "a" -> HTMLAnchorElementImpl(tagName)
+        "applet" -> HTMLAppletElementImpl(tagName)
+        "area" -> HTMLAreaElementImpl(tagName)
+        "audio" -> HTMLAudioElementImpl(tagName)
+        "base" -> HTMLBaseElementImpl(tagName)
+        "blockquote" -> HTMLQuoteElementImpl(tagName)
+        "body" -> HTMLBodyElementImpl(tagName)
+        "button" -> HTMLButtonElementImpl(tagName)
+        "canvas" -> HTMLCanvasElementImpl(tagName)
+        "caption" -> HTMLTableCaptionElementImpl(tagName)
+        "col" -> HTMLTableColElementImpl(tagName)
+        "data" -> HTMLDataElementImpl(tagName)
+        "del" -> HTMLModElementImpl(tagName)
+        "details" -> HTMLDetailsElementImpl(tagName)
+        "dialog" -> HTMLDialogElementImpl(tagName)
+        "embed" -> HTMLEmbedElementImpl(tagName)
+        "fieldset" -> HTMLFieldSetElementImpl(tagName)
+        "font" -> HTMLFontElementImpl(tagName)
+        "form" -> HTMLFormElementImpl(tagName)
+        "hr" -> HTMLHRElementImpl(tagName)
+        "iframe" -> HTMLIFrameElementImpl(tagName)
+        "img" -> HTMLImageElementImpl(tagName)
+        "input" -> HTMLInputElementImpl(tagName)
+        "ins" -> HTMLModElementImpl(tagName)
+        "keygen" -> HTMLKeygenElementImpl(tagName)
+        "label" -> HTMLLabelElementImpl(tagName)
+        "li" -> HTMLLIElementImpl(tagName)
+        "link" -> HTMLLinkElementImpl(tagName)
+        "map" -> HTMLMapElementImpl(tagName)
+        "marquee" -> HTMLMarqueeElementImpl(tagName)
+        "menu" -> HTMLMenuElementImpl(tagName)
+        "meta" -> HTMLMetaElementImpl(tagName)
+        "meter" -> HTMLMeterElementImpl(tagName)
+        "object" -> HTMLObjectElementImpl(tagName)
+        "ol" -> HTMLOListElementImpl(tagName)
+        "optgroup" -> HTMLOptGroupElementImpl(tagName)
+        "option" -> HTMLOptionElementImpl(tagName)
+        "output" -> HTMLOutputElementImpl(tagName)
+        "param" -> HTMLParamElementImpl(tagName)
+        "progress" -> HTMLProgressElementImpl(tagName)
+        "q" -> HTMLQuoteElementImpl(tagName)
+        "script" -> HTMLScriptElementImpl(tagName)
+        "select" -> HTMLSelectElementImpl(tagName)
+        "source" -> HTMLSourceElementImpl(tagName)
+        "style" -> HTMLStyleElementImpl(tagName)
+        "table" -> HTMLTableElementImpl(tagName)
+        "tbody" -> HTMLTableSectionElementImpl(tagName)
+        "td" -> HTMLTableCellElementImpl(tagName)
+        "textarea" -> HTMLTextAreaElementImpl(tagName)
+        "tfoot" -> HTMLTableSectionElementImpl(tagName)
+        "th" -> HTMLTableCellElementImpl(tagName)
+        "thead" -> HTMLTableSectionElementImpl(tagName)
+        "time" -> HTMLTimeElementImpl(tagName)
+        "tr" -> HTMLTableRowElementImpl(tagName)
+        "track" -> HTMLTrackElementImpl(tagName)
+        "video" -> HTMLVideoElementImpl(tagName)
+        else -> HTMLElementImpl(tagName)
+    }
+}
+
+class DirectHtmlFactory: HtmlFactory {
+    val stack = ArrayList<HTMLElement>()
+    override fun <T : HTMLElement> element(tagName: String): T {
+        @Suppress("UNCHECKED_CAST")
+        return createElement(tagName).also {
+            stack.lastOrNull()?.appendChild(it)
+            stack.add(it)
+        } as T
+    }
+
+    override fun text(text: String) {
+        stack.lastOrNull()?.let {
+            it.appendChild(Text(text))
+        }
+    }
+
+    override fun exitElement() { stack.removeLast() }
 }
 
 
-actual inline fun HTMLElement.a(setup: HTMLAnchorElement.()->Unit): HTMLAnchorElement = HTMLAnchorElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.applet(setup: HTMLAppletElement.()->Unit): HTMLAppletElement = HTMLAppletElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.area(setup: HTMLAreaElement.()->Unit): HTMLAreaElement = HTMLAreaElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.audio(setup: HTMLAudioElement.()->Unit): HTMLAudioElement = HTMLAudioElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.base(setup: HTMLBaseElement.()->Unit): HTMLBaseElement = HTMLBaseElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.blockquote(setup: HTMLQuoteElement.()->Unit): HTMLQuoteElement = HTMLQuoteElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.body(setup: HTMLBodyElement.()->Unit): HTMLBodyElement = HTMLBodyElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.button(setup: HTMLButtonElement.()->Unit): HTMLButtonElement = HTMLButtonElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.canvas(setup: HTMLCanvasElement.()->Unit): HTMLCanvasElement = HTMLCanvasElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.caption(setup: HTMLTableCaptionElement.()->Unit): HTMLTableCaptionElement = HTMLTableCaptionElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.col(setup: HTMLTableColElement.()->Unit): HTMLTableColElement = HTMLTableColElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.data(setup: HTMLDataElement.()->Unit): HTMLDataElement = HTMLDataElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.del(setup: HTMLModElement.()->Unit): HTMLModElement = HTMLModElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.details(setup: HTMLDetailsElement.()->Unit): HTMLDetailsElement = HTMLDetailsElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.dialog(setup: HTMLDialogElement.()->Unit): HTMLDialogElement = HTMLDialogElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.embed(setup: HTMLEmbedElement.()->Unit): HTMLEmbedElement = HTMLEmbedElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.fieldset(setup: HTMLFieldSetElement.()->Unit): HTMLFieldSetElement = HTMLFieldSetElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.font(setup: HTMLFontElement.()->Unit): HTMLFontElement = HTMLFontElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.form(setup: HTMLFormElement.()->Unit): HTMLFormElement = HTMLFormElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.hr(setup: HTMLHRElement.()->Unit): HTMLHRElement = HTMLHRElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.iframe(setup: HTMLIFrameElement.()->Unit): HTMLIFrameElement = HTMLIFrameElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.img(setup: HTMLImageElement.()->Unit): HTMLImageElement = HTMLImageElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.input(setup: HTMLInputElement.()->Unit): HTMLInputElement = HTMLInputElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.ins(setup: HTMLModElement.()->Unit): HTMLModElement = HTMLModElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.keygen(setup: HTMLKeygenElement.()->Unit): HTMLKeygenElement = HTMLKeygenElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.label(setup: HTMLLabelElement.()->Unit): HTMLLabelElement = HTMLLabelElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.li(setup: HTMLLIElement.()->Unit): HTMLLIElement = HTMLLIElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.link(setup: HTMLLinkElement.()->Unit): HTMLLinkElement = HTMLLinkElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.map(setup: HTMLMapElement.()->Unit): HTMLMapElement = HTMLMapElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.marquee(setup: HTMLMarqueeElement.()->Unit): HTMLMarqueeElement = HTMLMarqueeElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.menu(setup: HTMLMenuElement.()->Unit): HTMLMenuElement = HTMLMenuElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.meta(setup: HTMLMetaElement.()->Unit): HTMLMetaElement = HTMLMetaElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.meter(setup: HTMLMeterElement.()->Unit): HTMLMeterElement = HTMLMeterElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.`object`(setup: HTMLObjectElement.()->Unit): HTMLObjectElement = HTMLObjectElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.ol(setup: HTMLOListElement.()->Unit): HTMLOListElement = HTMLOListElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.optgroup(setup: HTMLOptGroupElement.()->Unit): HTMLOptGroupElement = HTMLOptGroupElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.option(setup: HTMLOptionElement.()->Unit): HTMLOptionElement = HTMLOptionElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.output(setup: HTMLOutputElement.()->Unit): HTMLOutputElement = HTMLOutputElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.param(setup: HTMLParamElement.()->Unit): HTMLParamElement = HTMLParamElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.progress(setup: HTMLProgressElement.()->Unit): HTMLProgressElement = HTMLProgressElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.q(setup: HTMLQuoteElement.()->Unit): HTMLQuoteElement = HTMLQuoteElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.script(setup: HTMLScriptElement.()->Unit): HTMLScriptElement = HTMLScriptElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.select(setup: HTMLSelectElement.()->Unit): HTMLSelectElement = HTMLSelectElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.source(setup: HTMLSourceElement.()->Unit): HTMLSourceElement = HTMLSourceElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.style(setup: HTMLStyleElement.()->Unit): HTMLStyleElement = HTMLStyleElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.table(setup: HTMLTableElement.()->Unit): HTMLTableElement = HTMLTableElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.tbody(setup: HTMLTableSectionElement.()->Unit): HTMLTableSectionElement = HTMLTableSectionElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.td(setup: HTMLTableCellElement.()->Unit): HTMLTableCellElement = HTMLTableCellElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.textarea(setup: HTMLTextAreaElement.()->Unit): HTMLTextAreaElement = HTMLTextAreaElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.tfoot(setup: HTMLTableSectionElement.()->Unit): HTMLTableSectionElement = HTMLTableSectionElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.th(setup: HTMLTableCellElement.()->Unit): HTMLTableCellElement = HTMLTableCellElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.thead(setup: HTMLTableSectionElement.()->Unit): HTMLTableSectionElement = HTMLTableSectionElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.time(setup: HTMLTimeElement.()->Unit): HTMLTimeElement = HTMLTimeElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.tr(setup: HTMLTableRowElement.()->Unit): HTMLTableRowElement = HTMLTableRowElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.track(setup: HTMLTrackElement.()->Unit): HTMLTrackElement = HTMLTrackElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.video(setup: HTMLVideoElement.()->Unit): HTMLVideoElement = HTMLVideoElementImpl().apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.element(tag: String, setup: HTMLElement.()->Unit): HTMLElement = HTMLElementImpl(tag).apply(setup).also { appendChild(it) }
-actual inline fun html(create: HTMLElement.() -> Unit): HTMLElement {
-    return HTMLElementImpl("").apply(create).children[0] as HTMLElement
+class MergeHtmlFactory(val mergeWith: HTMLElement): HtmlFactory {
+    val stack = ArrayList<HTMLElement>()
+    val childNumber = ArrayList<Int>()
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : HTMLElement> element(tagName: String): T {
+        val currentElement = stack.lastOrNull()
+        if(currentElement == null) {
+            return if(mergeWith.tagName != tagName) {
+                createElement(tagName).let { it as HTMLElement }.also {
+                    stack.add(it)
+                    childNumber.add(0)
+                } as T
+            } else {
+                stack.add(mergeWith)
+                childNumber.add(0)
+                mergeWith as T
+            }
+        }
+        val currentIndex = childNumber.lastOrNull() ?: 0
+        val existing = currentElement?.children?.getOrNull(currentIndex) as? HTMLElement
+        return if(existing == null) {
+            createElement(tagName).let { it as HTMLElement }.also {
+                stack.lastOrNull()?.appendChild(it)
+                stack.add(it)
+                childNumber.add(0)
+            } as T
+        } else if(existing.tagName != tagName) {
+            createElement(tagName).let { it as HTMLElement }.also {
+                currentElement?.replaceChild(existing, it)
+                childNumber.set(childNumber.lastIndex, currentIndex + 1)
+                stack.add(it)
+                childNumber.add(0)
+            } as T
+        } else {
+            val it = existing
+            childNumber.set(childNumber.lastIndex, currentIndex + 1)
+            stack.add(it as HTMLElement)
+            childNumber.add(0)
+            it as T
+        }
+    }
+
+    override fun text(text: String) {
+        val currentElement = stack.lastOrNull() ?: return
+        val currentIndex = childNumber.lastOrNull() ?: 0
+        val existing = currentElement?.children?.getOrNull(currentIndex) as? Text
+        if(existing != null) currentElement.replaceChild(existing, Text(text))
+        else currentElement.appendChild(Text(text))
+        childNumber.set(childNumber.lastIndex, currentIndex + 1)
+    }
+
+    override fun exitElement() {
+        stack.removeLast()
+        childNumber.removeLast()
+    }
 }

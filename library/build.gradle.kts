@@ -44,8 +44,16 @@ kotlin {
                 api("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
             }
         }
+        val commonTest by getting {
+            dependencies {
+                implementation(kotlin("test")) // This brings all the platform dependencies automatically
+            }
+        }
         val commonJvmMain by creating {
             dependsOn(commonMain)
+            dependencies {
+                api("org.apache.commons:commons-lang3:3.12.0")
+            }
         }
         val domMain by creating {
             dependsOn(commonMain)

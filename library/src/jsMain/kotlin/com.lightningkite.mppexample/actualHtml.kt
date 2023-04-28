@@ -1,8 +1,10 @@
 package com.lightningkite.mppexample
 
 import kotlinx.browser.document
+import kotlinx.dom.appendText
 import org.w3c.dom.CharacterData
 import org.w3c.dom.HTMLMediaElement
+import org.w3c.dom.get
 
 actual typealias CSSStyleDeclaration = org.w3c.dom.css.CSSStyleDeclaration
 actual typealias Node = org.w3c.dom.Node
@@ -63,63 +65,78 @@ actual typealias HTMLTableRowElement = org.w3c.dom.HTMLTableRowElement
 actual typealias HTMLTrackElement = org.w3c.dom.HTMLTrackElement
 actual typealias HTMLVideoElement = org.w3c.dom.HTMLVideoElement
 
-actual inline fun HTMLElement.a(setup: HTMLAnchorElement.()->Unit): HTMLAnchorElement = (document.createElement("a") as HTMLAnchorElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.applet(setup: HTMLAppletElement.()->Unit): HTMLAppletElement = (document.createElement("applet") as HTMLAppletElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.area(setup: HTMLAreaElement.()->Unit): HTMLAreaElement = (document.createElement("area") as HTMLAreaElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.audio(setup: HTMLAudioElement.()->Unit): HTMLAudioElement = (document.createElement("audio") as HTMLAudioElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.base(setup: HTMLBaseElement.()->Unit): HTMLBaseElement = (document.createElement("base") as HTMLBaseElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.blockquote(setup: HTMLQuoteElement.()->Unit): HTMLQuoteElement = (document.createElement("blockquote") as HTMLQuoteElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.body(setup: HTMLBodyElement.()->Unit): HTMLBodyElement = (document.createElement("body") as HTMLBodyElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.button(setup: HTMLButtonElement.()->Unit): HTMLButtonElement = (document.createElement("button") as HTMLButtonElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.canvas(setup: HTMLCanvasElement.()->Unit): HTMLCanvasElement = (document.createElement("canvas") as HTMLCanvasElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.caption(setup: HTMLTableCaptionElement.()->Unit): HTMLTableCaptionElement = (document.createElement("caption") as HTMLTableCaptionElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.col(setup: HTMLTableColElement.()->Unit): HTMLTableColElement = (document.createElement("col") as HTMLTableColElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.data(setup: HTMLDataElement.()->Unit): HTMLDataElement = (document.createElement("data") as HTMLDataElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.del(setup: HTMLModElement.()->Unit): HTMLModElement = (document.createElement("del") as HTMLModElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.details(setup: HTMLDetailsElement.()->Unit): HTMLDetailsElement = (document.createElement("details") as HTMLDetailsElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.dialog(setup: HTMLDialogElement.()->Unit): HTMLDialogElement = (document.createElement("dialog") as HTMLDialogElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.embed(setup: HTMLEmbedElement.()->Unit): HTMLEmbedElement = (document.createElement("embed") as HTMLEmbedElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.fieldset(setup: HTMLFieldSetElement.()->Unit): HTMLFieldSetElement = (document.createElement("fieldset") as HTMLFieldSetElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.font(setup: HTMLFontElement.()->Unit): HTMLFontElement = (document.createElement("font") as HTMLFontElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.form(setup: HTMLFormElement.()->Unit): HTMLFormElement = (document.createElement("form") as HTMLFormElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.hr(setup: HTMLHRElement.()->Unit): HTMLHRElement = (document.createElement("hr") as HTMLHRElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.iframe(setup: HTMLIFrameElement.()->Unit): HTMLIFrameElement = (document.createElement("iframe") as HTMLIFrameElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.img(setup: HTMLImageElement.()->Unit): HTMLImageElement = (document.createElement("img") as HTMLImageElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.input(setup: HTMLInputElement.()->Unit): HTMLInputElement = (document.createElement("input") as HTMLInputElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.ins(setup: HTMLModElement.()->Unit): HTMLModElement = (document.createElement("ins") as HTMLModElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.keygen(setup: HTMLKeygenElement.()->Unit): HTMLKeygenElement = (document.createElement("keygen") as HTMLKeygenElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.label(setup: HTMLLabelElement.()->Unit): HTMLLabelElement = (document.createElement("label") as HTMLLabelElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.li(setup: HTMLLIElement.()->Unit): HTMLLIElement = (document.createElement("li") as HTMLLIElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.link(setup: HTMLLinkElement.()->Unit): HTMLLinkElement = (document.createElement("link") as HTMLLinkElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.map(setup: HTMLMapElement.()->Unit): HTMLMapElement = (document.createElement("map") as HTMLMapElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.marquee(setup: HTMLMarqueeElement.()->Unit): HTMLMarqueeElement = (document.createElement("marquee") as HTMLMarqueeElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.menu(setup: HTMLMenuElement.()->Unit): HTMLMenuElement = (document.createElement("menu") as HTMLMenuElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.meta(setup: HTMLMetaElement.()->Unit): HTMLMetaElement = (document.createElement("meta") as HTMLMetaElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.meter(setup: HTMLMeterElement.()->Unit): HTMLMeterElement = (document.createElement("meter") as HTMLMeterElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.`object`(setup: HTMLObjectElement.()->Unit): HTMLObjectElement = (document.createElement("object") as HTMLObjectElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.ol(setup: HTMLOListElement.()->Unit): HTMLOListElement = (document.createElement("ol") as HTMLOListElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.optgroup(setup: HTMLOptGroupElement.()->Unit): HTMLOptGroupElement = (document.createElement("optgroup") as HTMLOptGroupElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.option(setup: HTMLOptionElement.()->Unit): HTMLOptionElement = (document.createElement("option") as HTMLOptionElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.output(setup: HTMLOutputElement.()->Unit): HTMLOutputElement = (document.createElement("output") as HTMLOutputElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.param(setup: HTMLParamElement.()->Unit): HTMLParamElement = (document.createElement("param") as HTMLParamElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.progress(setup: HTMLProgressElement.()->Unit): HTMLProgressElement = (document.createElement("progress") as HTMLProgressElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.q(setup: HTMLQuoteElement.()->Unit): HTMLQuoteElement = (document.createElement("q") as HTMLQuoteElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.script(setup: HTMLScriptElement.()->Unit): HTMLScriptElement = (document.createElement("script") as HTMLScriptElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.select(setup: HTMLSelectElement.()->Unit): HTMLSelectElement = (document.createElement("select") as HTMLSelectElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.source(setup: HTMLSourceElement.()->Unit): HTMLSourceElement = (document.createElement("source") as HTMLSourceElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.style(setup: HTMLStyleElement.()->Unit): HTMLStyleElement = (document.createElement("style") as HTMLStyleElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.table(setup: HTMLTableElement.()->Unit): HTMLTableElement = (document.createElement("table") as HTMLTableElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.tbody(setup: HTMLTableSectionElement.()->Unit): HTMLTableSectionElement = (document.createElement("tbody") as HTMLTableSectionElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.td(setup: HTMLTableCellElement.()->Unit): HTMLTableCellElement = (document.createElement("td") as HTMLTableCellElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.textarea(setup: HTMLTextAreaElement.()->Unit): HTMLTextAreaElement = (document.createElement("textarea") as HTMLTextAreaElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.tfoot(setup: HTMLTableSectionElement.()->Unit): HTMLTableSectionElement = (document.createElement("tfoot") as HTMLTableSectionElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.th(setup: HTMLTableCellElement.()->Unit): HTMLTableCellElement = (document.createElement("th") as HTMLTableCellElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.thead(setup: HTMLTableSectionElement.()->Unit): HTMLTableSectionElement = (document.createElement("thead") as HTMLTableSectionElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.time(setup: HTMLTimeElement.()->Unit): HTMLTimeElement = (document.createElement("time") as HTMLTimeElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.tr(setup: HTMLTableRowElement.()->Unit): HTMLTableRowElement = (document.createElement("tr") as HTMLTableRowElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.track(setup: HTMLTrackElement.()->Unit): HTMLTrackElement = (document.createElement("track") as HTMLTrackElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.video(setup: HTMLVideoElement.()->Unit): HTMLVideoElement = (document.createElement("video") as HTMLVideoElement).apply(setup).also { appendChild(it) }
-actual inline fun HTMLElement.element(tag: String, setup: HTMLElement.()->Unit): HTMLElement = (document.createElement(tag) as HTMLElement).apply(setup).also { appendChild(it) }
-actual inline fun html(create: HTMLElement.() -> Unit): HTMLElement {
-    return document.createElement("div").let { it as HTMLElement }.apply(create).firstChild as HTMLElement
+class DirectHtmlFactory: HtmlFactory {
+    val stack = ArrayList<HTMLElement>()
+    override fun <T : HTMLElement> element(tagName: String): T {
+        @Suppress("UNCHECKED_CAST")
+        return document.createElement(tagName).let { it as HTMLElement }.also {
+            stack.lastOrNull()?.appendChild(it)
+            stack.add(it)
+        } as T
+    }
+
+    override fun text(text: String) {
+        stack.lastOrNull()?.let {
+            it.appendChild(it.ownerDocument!!.createTextNode(text))
+        }
+    }
+
+    override fun exitElement() { stack.removeLast() }
+}
+
+class MergeHtmlFactory(val mergeWith: HTMLElement): HtmlFactory {
+    val stack = ArrayList<HTMLElement>()
+    val childNumber = ArrayList<Int>()
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : HTMLElement> element(tagName: String): T {
+        val currentElement = stack.lastOrNull()
+        if(currentElement == null) {
+            return if(mergeWith.tagName != tagName) {
+                document.createElement(tagName).let { it as HTMLElement }.also {
+                    stack.add(it)
+                    childNumber.add(0)
+                } as T
+            } else {
+                stack.add(mergeWith)
+                childNumber.add(0)
+                mergeWith as T
+            }
+        }
+        val currentIndex = childNumber.lastOrNull() ?: 0
+        val existing = currentElement?.children?.get(currentIndex) as? HTMLElement
+        return if(existing == null) {
+            document.createElement(tagName).let { it as HTMLElement }.also {
+                stack.lastOrNull()?.appendChild(it)
+                stack.add(it)
+                childNumber.add(0)
+            } as T
+        } else if(existing.tagName != tagName) {
+            document.createElement(tagName).let { it as HTMLElement }.also {
+                currentElement?.replaceChild(existing, it)
+                childNumber.set(childNumber.lastIndex, currentIndex + 1)
+                stack.add(it)
+                childNumber.add(0)
+            } as T
+        } else {
+            val it = existing
+            childNumber.set(childNumber.lastIndex, currentIndex + 1)
+            stack.add(it as HTMLElement)
+            childNumber.add(0)
+            it as T
+        }
+    }
+
+    override fun text(text: String) {
+        val currentElement = stack.lastOrNull() ?: return
+        val currentIndex = childNumber.lastOrNull() ?: 0
+        val existing = currentElement?.children?.get(currentIndex) as? Text
+        if(existing != null) currentElement.replaceChild(existing, Text(text))
+        else currentElement.appendChild(Text(text))
+        childNumber.set(childNumber.lastIndex, currentIndex + 1)
+    }
+
+    override fun exitElement() {
+        stack.removeLast()
+        childNumber.removeLast()
+    }
 }
