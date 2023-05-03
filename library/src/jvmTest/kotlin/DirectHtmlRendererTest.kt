@@ -2,9 +2,8 @@ package com.lightningkite.mppexample
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
-class DirectHtmlFactoryTest {
+class DirectHtmlRendererTest {
     @Test fun test() {
         val dom = with(DirectHtmlFactory()) {
             html {
@@ -44,8 +43,7 @@ class DirectHtmlFactoryTest {
             }
         }
         println(buildString { original.render(this) })
-        fun HtmlFactory.build2(): HTMLElement {
-            return html {
+        fun HtmlRenderer.build2() {
                 head {
                     title = "Title 2"
                 }
@@ -63,12 +61,19 @@ class DirectHtmlFactoryTest {
                         }
                     }
                 }
+        }
+        MergeHtmlFactory().let {
+            it.forParent(original) {
+                build2()
             }
         }
-        val update = MergeHtmlFactory(original).build2()
-        val fromScratch = DirectHtmlFactory().build2()
-        println(buildString { update.render(this) })
+        val fromScratch = with(DirectHtmlFactory()) {
+            html {
+                build2()
+            }
+        }
+        println(buildString { original.render(this) })
         println(buildString { fromScratch.render(this) })
-        assertEquals(buildString { fromScratch.render(this) }, buildString { update.render(this) })
+        assertEquals(buildString { fromScratch.render(this) }, buildString { original.render(this) })
     }
 }

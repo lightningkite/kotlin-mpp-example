@@ -266,23 +266,39 @@ actual abstract class Node {
         children.add(node)
         return node
     }
-    fun replaceChild(previous: Node, new: Node) {
-        children.set(children.indexOf(previous), new)
+    actual fun replaceChild(node: Node, child: Node): Node {
+        children.set(children.indexOf(node), child)
+        return child
     }
     abstract fun render(out: Appendable)
+    actual open var nodeValue: String?
+        get() = null
+        set(value) {
+
+        }
 }
 actual abstract class CharacterData: Node() {}
-actual open class Text actual constructor(val data: String): CharacterData() {
+actual open class Text actual constructor(var data: String): CharacterData() {
     actual open val wholeText: String get() = data
     override fun render(out: Appendable) { out.append(escapeHtml4(data)) }
+    override var nodeValue: String?
+        get() = data
+        set(value) { data = value ?: "" }
 }
 actual abstract class Element: Node() {
     actual open val tagName: String get() = "unknown"
+    actual open var className: String by attributeString("class")
+    actual open var id: String by attributeString("id")
+    actual open var slot: String by attributeString("slot")
 
     val attributes = HashMap<String, String>()
     fun attributeString(key: String) = object: ReadWriteProperty<Node, String> {
         override fun getValue(thisRef: Node, property: KProperty<*>): String = attributes[key] ?: ""
         override fun setValue(thisRef: Node, property: KProperty<*>, value: String) { attributes[key] = value }
+    }
+    fun attributeNullableString(key: String) = object: ReadWriteProperty<Node, String?> {
+        override fun getValue(thisRef: Node, property: KProperty<*>): String? = attributes[key]
+        override fun setValue(thisRef: Node, property: KProperty<*>, value: String?) { if(value != null) attributes[key] = value else attributes.remove(key) }
     }
     fun attributeDouble(key: String) = object: ReadWriteProperty<Node, Double> {
         override fun getValue(thisRef: Node, property: KProperty<*>): Double = attributes[key]?.toDoubleOrNull() ?: 0.0
@@ -327,13 +343,10 @@ class HTMLElementImpl(override val tagName: String): HTMLElement() {
 }
 actual abstract class HTMLElement: Element() {
     actual open var accessKey: String by attributeString("accesskey")
-    actual open var className: String by attributeString("class")
     actual open var dir: String by attributeString("dir")
     actual open var draggable: Boolean by attributeBoolean("draggable")
     actual open var hidden: Boolean by attributeBoolean("hidden")
-    actual open var id: String by attributeString("id")
     actual open var lang: String by attributeString("lang")
-    actual open var slot: String by attributeString("slot")
     actual open var spellcheck: Boolean by attributeBoolean("spellcheck")
     actual abstract val style: CSSStyleDeclaration  // style
     actual open var title: String by attributeString("title")
@@ -379,6 +392,7 @@ class HTMLMediaElementImpl(override val tagName: String): HTMLMediaElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLMediaElement: HTMLElement() {
+    actual open var crossOrigin: String? by attributeNullableString("crossorigin")
     actual open var autoplay: Boolean by attributeBoolean("autoplay")
 //  actual open var buffered: String by attributeString("buffered")
     actual open var controls: Boolean by attributeBoolean("controls")
@@ -607,7 +621,7 @@ class HTMLLinkElementImpl(override val tagName: String): HTMLLinkElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
 }
 actual abstract class HTMLLinkElement: HTMLElement() {
-    actual open var crossOrigin: String? = null  // crossorigin
+    actual open var crossOrigin: String? by attributeNullableString("crossorigin")
     actual open var href: String by attributeString("href")
     actual open var hreflang: String by attributeString("hreflang")
     actual open var media: String by attributeString("media")
@@ -727,7 +741,7 @@ class HTMLScriptElementImpl(override val tagName: String): HTMLScriptElement() {
 actual abstract class HTMLScriptElement: HTMLElement() {
     actual open var async: Boolean by attributeBoolean("async")
     actual open var charset: String by attributeString("charset")
-    actual open var crossOrigin: String? = null  // crossorigin
+    actual open var crossOrigin: String? by attributeNullableString("crossorigin")
     actual open var defer: Boolean by attributeBoolean("defer")
 //  actual open var integrity: String by attributeString("integrity")
 //  actual open var referrerPolicy: String by attributeString("referrerpolicy")
@@ -834,14 +848,14 @@ class HTMLVideoElementImpl(override val tagName: String): HTMLVideoElement() {
 }
 actual abstract class HTMLVideoElement: HTMLMediaElement() {
 //  actual open var buffered: String by attributeString("buffered")
-    actual open var crossOrigin: String? = null  // crossorigin
     actual open var height: Int by attributeInt("height")
     actual open var playsInline: Boolean by attributeBoolean("playsinline")
     actual open var poster: String by attributeString("poster")
     actual open var width: Int by attributeInt("width")
 }
 
-private fun createElement(tagName: String): HTMLElement {
+actual inline fun createElement(tagName: String): HTMLElement = createElementByTagName(tagName)
+fun createElementByTagName(tagName: String): HTMLElement {
     return when(tagName) {
         "a" -> HTMLAnchorElementImpl(tagName)
         "applet" -> HTMLAppletElementImpl(tagName)
@@ -903,79 +917,5 @@ private fun createElement(tagName: String): HTMLElement {
     }
 }
 
-class DirectHtmlFactory: HtmlFactory {
-    val stack = ArrayList<HTMLElement>()
-    override fun <T : HTMLElement> element(tagName: String): T {
-        @Suppress("UNCHECKED_CAST")
-        return createElement(tagName).also {
-            stack.lastOrNull()?.appendChild(it)
-            stack.add(it)
-        } as T
-    }
-
-    override fun text(text: String) {
-        stack.lastOrNull()?.let {
-            it.appendChild(Text(text))
-        }
-    }
-
-    override fun exitElement() { stack.removeLast() }
-}
-
-
-class MergeHtmlFactory(val mergeWith: HTMLElement): HtmlFactory {
-    val stack = ArrayList<HTMLElement>()
-    val childNumber = ArrayList<Int>()
-    @Suppress("UNCHECKED_CAST")
-    override fun <T : HTMLElement> element(tagName: String): T {
-        val currentElement = stack.lastOrNull()
-        if(currentElement == null) {
-            return if(mergeWith.tagName != tagName) {
-                createElement(tagName).let { it as HTMLElement }.also {
-                    stack.add(it)
-                    childNumber.add(0)
-                } as T
-            } else {
-                stack.add(mergeWith)
-                childNumber.add(0)
-                mergeWith as T
-            }
-        }
-        val currentIndex = childNumber.lastOrNull() ?: 0
-        val existing = currentElement?.children?.getOrNull(currentIndex) as? HTMLElement
-        return if(existing == null) {
-            createElement(tagName).let { it as HTMLElement }.also {
-                stack.lastOrNull()?.appendChild(it)
-                stack.add(it)
-                childNumber.add(0)
-            } as T
-        } else if(existing.tagName != tagName) {
-            createElement(tagName).let { it as HTMLElement }.also {
-                currentElement?.replaceChild(existing, it)
-                childNumber.set(childNumber.lastIndex, currentIndex + 1)
-                stack.add(it)
-                childNumber.add(0)
-            } as T
-        } else {
-            val it = existing
-            childNumber.set(childNumber.lastIndex, currentIndex + 1)
-            stack.add(it as HTMLElement)
-            childNumber.add(0)
-            it as T
-        }
-    }
-
-    override fun text(text: String) {
-        val currentElement = stack.lastOrNull() ?: return
-        val currentIndex = childNumber.lastOrNull() ?: 0
-        val existing = currentElement?.children?.getOrNull(currentIndex) as? Text
-        if(existing != null) currentElement.replaceChild(existing, Text(text))
-        else currentElement.appendChild(Text(text))
-        childNumber.set(childNumber.lastIndex, currentIndex + 1)
-    }
-
-    override fun exitElement() {
-        stack.removeLast()
-        childNumber.removeLast()
-    }
-}
+actual inline fun HTMLElement.getChild(index: Int): Node? = this.children.getOrNull(index)
+actual inline fun HTMLElement.addOnClick(crossinline action: () -> Unit) = Unit

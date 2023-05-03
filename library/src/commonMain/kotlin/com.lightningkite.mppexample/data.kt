@@ -26,26 +26,26 @@ sealed interface DataState<out T> {
     }
 }
 
-interface Data<out T> {
+interface Changing<out T> {
     val state: DataState<T>
     fun subscribe(action: (DataState<T>) -> Unit): () -> Unit
 }
-interface EditableData<T>: Data<T> {
+interface Changeable<T>: Changing<T> {
     override var state: DataState<T>
 }
 
-interface InstantData<T> : Data<T> {
+interface InstantChanging<T> : Changing<T> {
     val value: T
 }
-interface InstantEditableData<T> : EditableData<T> {
+interface InstantChangeable<T> : Changeable<T> {
     var value: T
 }
 
-class Constant<T>(override val value: T): InstantData<T> {
+class Constant<T>(override val value: T): InstantChanging<T> {
     override val state: DataState<T> = DataState.Ready(value)
     override fun subscribe(action: (DataState<T>) -> Unit): () -> Unit = {}
 }
-class Property<T>(value: T): InstantEditableData<T> {
+class Property<T>(value: T): InstantChangeable<T> {
     private val listeners = HashSet<(DataState<T>)->Unit>()
     private var updating: Boolean = false
     override var value: T = value
@@ -68,7 +68,7 @@ class Property<T>(value: T): InstantEditableData<T> {
         return { listeners.remove(action) }
     }
 }
-class LateProperty<T>(state: DataState<T> = DataState.Loading): EditableData<T> {
+class LateProperty<T>(state: DataState<T> = DataState.Loading): Changeable<T> {
     private val listeners = HashSet<(DataState<T>)->Unit>()
     private var updating: Boolean = false
     override var state: DataState<T> = state
@@ -84,7 +84,7 @@ class LateProperty<T>(state: DataState<T> = DataState.Loading): EditableData<T> 
         return { listeners.remove(action) }
     }
 }
-fun <T> suspendData(action: suspend ()->T): Data<T> {
+fun <T> suspendData(action: suspend ()->T): Changing<T> {
     val data = LateProperty<T>(DataState.Loading)
     fireAndForgetLaunch {
         try {
@@ -101,7 +101,7 @@ interface DataScope<T> {
     suspend fun loading()
     suspend fun yieldAll(iterator: Iterator<T>) = iterator.forEach { yield(it) }
 }
-fun <T> generateData(action: suspend (scope: DataScope<T>)->Unit): Data<T> {
+fun <T> generateData(action: suspend (scope: DataScope<T>)->Unit): Changing<T> {
     val data = LateProperty<T>(DataState.Loading)
     fireAndForgetLaunch {
         try {
@@ -125,12 +125,12 @@ fun <T> generateData(action: suspend (scope: DataScope<T>)->Unit): Data<T> {
     return data
 }
 
-fun <T, B> Data<T>.view(transform: (T) -> B): Data<B> = object : Data<B> {
+fun <T, B> Changing<T>.view(transform: (T) -> B): Changing<B> = object : Changing<B> {
     override val state: DataState<B> get() = this@view.state.map(transform)
     override fun subscribe(action: (DataState<B>) -> Unit): () -> Unit = this@view.subscribe { action(it.map(transform)) }
 }
 
-fun <T, B> Data<T>.viewData(transform: (T) -> Data<B>): Data<B> = object : Data<B> {
+fun <T, B> Changing<T>.viewData(transform: (T) -> Changing<B>): Changing<B> = object : Changing<B> {
     override val state: DataState<B> get() = this@viewData.state.flatMap { transform(it).state }
     override fun subscribe(action: (DataState<B>) -> Unit): () -> Unit {
         var sub: () -> Unit = when(val state = this@viewData.state) {
@@ -152,16 +152,16 @@ fun <T, B> Data<T>.viewData(transform: (T) -> Data<B>): Data<B> = object : Data<
     }
 }
 
-fun <T, B> Data<T>.viewSuspend(transform: suspend (T) -> B): Data<B> = viewData { it: T -> suspendData { transform(it) } }
+fun <T, B> Changing<T>.viewSuspend(transform: suspend (T) -> B): Changing<B> = viewData { it: T -> suspendData { transform(it) } }
 
-fun <T, B> EditableData<T>.view(transform: (T) -> B, reverse: (B) -> T): EditableData<B> = object : EditableData<B> {
+fun <T, B> Changeable<T>.view(transform: (T) -> B, reverse: (B) -> T): Changeable<B> = object : Changeable<B> {
     override var state: DataState<B>
         get() = this@view.state.map(transform)
         set(value) { this@view.state = value.map(reverse) }
     override fun subscribe(action: (DataState<B>) -> Unit): () -> Unit = this@view.subscribe { action(it.map(transform)) }
 }
 
-fun <T, B> EditableData<T>.viewData(transform: (T) -> EditableData<B>): EditableData<B> = object : EditableData<B>, Data<B> by viewData(transform) {
+fun <T, B> Changeable<T>.viewData(transform: (T) -> Changeable<B>): Changeable<B> = object : Changeable<B>, Changing<B> by viewData(transform) {
     override var state: DataState<B>
         get() = this@viewData.state.flatMap { transform(it).state }
         set(value) {
@@ -172,7 +172,7 @@ fun <T, B> EditableData<T>.viewData(transform: (T) -> EditableData<B>): Editable
         }
 }
 
-fun <T> Data<T>.withWrite(action: (T)->Unit): EditableData<T> = object: EditableData<T>, Data<T> by this {
+fun <T> Changing<T>.withWrite(action: (T)->Unit): Changeable<T> = object: Changeable<T>, Changing<T> by this {
     override var state: DataState<T>
         get() = this@withWrite.state
         set(value) {
@@ -180,7 +180,7 @@ fun <T> Data<T>.withWrite(action: (T)->Unit): EditableData<T> = object: Editable
         }
 }
 
-fun <T> InstantData<T>.withWrite(action: (T)->Unit): InstantEditableData<T> = object: InstantEditableData<T>, InstantData<T> by this {
+fun <T> InstantChanging<T>.withWrite(action: (T)->Unit): InstantChangeable<T> = object: InstantChangeable<T>, InstantChanging<T> by this {
     override var value: T
         get() = this@withWrite.value
         set(value) { action(value) }

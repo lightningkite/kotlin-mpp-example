@@ -233,9 +233,10 @@ expect abstract class CSSStyleDeclaration {
     fun setPropertyPriority(property: String, priority: String)
     fun removeProperty(property: String): String
 }
-
 expect abstract class Node {
+    fun replaceChild(node: Node, child: Node): Node
     fun appendChild(node: Node): Node
+    open var nodeValue: String?
 }
 expect abstract class CharacterData: Node {}
 expect open class Text(data: String): CharacterData {
@@ -243,17 +244,17 @@ expect open class Text(data: String): CharacterData {
 }
 expect abstract class Element: Node {
     open val tagName: String
+    open var className: String  // class
+    open var id: String  // id
+    open var slot: String  // slot
 }
 
 expect abstract class HTMLElement: Element {
     open var accessKey: String  // accesskey
-    open var className: String  // class
     open var dir: String  // dir
     open var draggable: Boolean  // draggable
     open var hidden: Boolean  // hidden
-    open var id: String  // id
     open var lang: String  // lang
-    open var slot: String  // slot
     open var spellcheck: Boolean  // spellcheck
     abstract val style: CSSStyleDeclaration  // style
     open var title: String  // title
@@ -292,6 +293,7 @@ expect abstract class HTMLMediaElement: HTMLElement {
     open var muted: Boolean  // muted
     open var preload: String  // preload
     open var src: String  // src
+    open var crossOrigin: String?  // crossorigin
 }
 expect abstract class HTMLAudioElement: HTMLMediaElement {
 }
@@ -596,7 +598,6 @@ expect abstract class HTMLTrackElement: HTMLElement {
 }
 expect abstract class HTMLVideoElement: HTMLMediaElement {
 //    open var buffered: String  // buffered
-    open var crossOrigin: String?  // crossorigin
     open var height: Int  // height
     open var playsInline: Boolean  // playsinline
     open var poster: String  // poster
@@ -624,135 +625,253 @@ div {
 
 */
 
-interface HtmlFactory {
+interface HtmlRenderer {
     fun <T: HTMLElement> element(tagName: String): T
-    fun text(text: String)
+    fun text(text: String): Text
     fun exitElement()
+    fun push(context: HTMLElement?)
+    val current: HTMLElement?
+    val lastCompleted: HTMLElement?
+}
+inline fun HtmlRenderer.forParent(parent: HTMLElement, action: HtmlRenderer.()->Unit) {
+    try {
+        push(parent)
+        action()
+    } finally {
+        exitElement()
+    }
 }
 
-inline fun HtmlFactory.a(setup: HTMLAnchorElement.()->Unit): HTMLAnchorElement = element<HTMLAnchorElement>("a").apply(setup).also { exitElement() }
-inline fun HtmlFactory.applet(setup: HTMLAppletElement.()->Unit): HTMLAppletElement = element<HTMLAppletElement>("applet").apply(setup).also { exitElement() }
-inline fun HtmlFactory.area(setup: HTMLAreaElement.()->Unit): HTMLAreaElement = element<HTMLAreaElement>("area").apply(setup).also { exitElement() }
-inline fun HtmlFactory.audio(setup: HTMLAudioElement.()->Unit): HTMLAudioElement = element<HTMLAudioElement>("audio").apply(setup).also { exitElement() }
-inline fun HtmlFactory.base(setup: HTMLBaseElement.()->Unit): HTMLBaseElement = element<HTMLBaseElement>("base").apply(setup).also { exitElement() }
-inline fun HtmlFactory.blockquote(setup: HTMLQuoteElement.()->Unit): HTMLQuoteElement = element<HTMLQuoteElement>("blockquote").apply(setup).also { exitElement() }
-inline fun HtmlFactory.body(setup: HTMLBodyElement.()->Unit): HTMLBodyElement = element<HTMLBodyElement>("body").apply(setup).also { exitElement() }
-inline fun HtmlFactory.button(setup: HTMLButtonElement.()->Unit): HTMLButtonElement = element<HTMLButtonElement>("button").apply(setup).also { exitElement() }
-inline fun HtmlFactory.canvas(setup: HTMLCanvasElement.()->Unit): HTMLCanvasElement = element<HTMLCanvasElement>("canvas").apply(setup).also { exitElement() }
-inline fun HtmlFactory.caption(setup: HTMLTableCaptionElement.()->Unit): HTMLTableCaptionElement = element<HTMLTableCaptionElement>("caption").apply(setup).also { exitElement() }
-inline fun HtmlFactory.col(setup: HTMLTableColElement.()->Unit): HTMLTableColElement = element<HTMLTableColElement>("col").apply(setup).also { exitElement() }
-inline fun HtmlFactory.data(setup: HTMLDataElement.()->Unit): HTMLDataElement = element<HTMLDataElement>("data").apply(setup).also { exitElement() }
-inline fun HtmlFactory.del(setup: HTMLModElement.()->Unit): HTMLModElement = element<HTMLModElement>("del").apply(setup).also { exitElement() }
-inline fun HtmlFactory.details(setup: HTMLDetailsElement.()->Unit): HTMLDetailsElement = element<HTMLDetailsElement>("details").apply(setup).also { exitElement() }
-inline fun HtmlFactory.dialog(setup: HTMLDialogElement.()->Unit): HTMLDialogElement = element<HTMLDialogElement>("dialog").apply(setup).also { exitElement() }
-inline fun HtmlFactory.embed(setup: HTMLEmbedElement.()->Unit): HTMLEmbedElement = element<HTMLEmbedElement>("embed").apply(setup).also { exitElement() }
-inline fun HtmlFactory.fieldset(setup: HTMLFieldSetElement.()->Unit): HTMLFieldSetElement = element<HTMLFieldSetElement>("fieldset").apply(setup).also { exitElement() }
-inline fun HtmlFactory.font(setup: HTMLFontElement.()->Unit): HTMLFontElement = element<HTMLFontElement>("font").apply(setup).also { exitElement() }
-inline fun HtmlFactory.form(setup: HTMLFormElement.()->Unit): HTMLFormElement = element<HTMLFormElement>("form").apply(setup).also { exitElement() }
-inline fun HtmlFactory.hr(setup: HTMLHRElement.()->Unit): HTMLHRElement = element<HTMLHRElement>("hr").apply(setup).also { exitElement() }
-inline fun HtmlFactory.iframe(setup: HTMLIFrameElement.()->Unit): HTMLIFrameElement = element<HTMLIFrameElement>("iframe").apply(setup).also { exitElement() }
-inline fun HtmlFactory.img(setup: HTMLImageElement.()->Unit): HTMLImageElement = element<HTMLImageElement>("img").apply(setup).also { exitElement() }
-inline fun HtmlFactory.input(setup: HTMLInputElement.()->Unit): HTMLInputElement = element<HTMLInputElement>("input").apply(setup).also { exitElement() }
-inline fun HtmlFactory.ins(setup: HTMLModElement.()->Unit): HTMLModElement = element<HTMLModElement>("ins").apply(setup).also { exitElement() }
-inline fun HtmlFactory.keygen(setup: HTMLKeygenElement.()->Unit): HTMLKeygenElement = element<HTMLKeygenElement>("keygen").apply(setup).also { exitElement() }
-inline fun HtmlFactory.label(setup: HTMLLabelElement.()->Unit): HTMLLabelElement = element<HTMLLabelElement>("label").apply(setup).also { exitElement() }
-inline fun HtmlFactory.li(setup: HTMLLIElement.()->Unit): HTMLLIElement = element<HTMLLIElement>("li").apply(setup).also { exitElement() }
-inline fun HtmlFactory.link(setup: HTMLLinkElement.()->Unit): HTMLLinkElement = element<HTMLLinkElement>("link").apply(setup).also { exitElement() }
-inline fun HtmlFactory.map(setup: HTMLMapElement.()->Unit): HTMLMapElement = element<HTMLMapElement>("map").apply(setup).also { exitElement() }
-inline fun HtmlFactory.marquee(setup: HTMLMarqueeElement.()->Unit): HTMLMarqueeElement = element<HTMLMarqueeElement>("marquee").apply(setup).also { exitElement() }
-inline fun HtmlFactory.menu(setup: HTMLMenuElement.()->Unit): HTMLMenuElement = element<HTMLMenuElement>("menu").apply(setup).also { exitElement() }
-inline fun HtmlFactory.meta(setup: HTMLMetaElement.()->Unit): HTMLMetaElement = element<HTMLMetaElement>("meta").apply(setup).also { exitElement() }
-inline fun HtmlFactory.meter(setup: HTMLMeterElement.()->Unit): HTMLMeterElement = element<HTMLMeterElement>("meter").apply(setup).also { exitElement() }
-inline fun HtmlFactory.`object`(setup: HTMLObjectElement.()->Unit): HTMLObjectElement = element<HTMLObjectElement>("object").apply(setup).also { exitElement() }
-inline fun HtmlFactory.ol(setup: HTMLOListElement.()->Unit): HTMLOListElement = element<HTMLOListElement>("ol").apply(setup).also { exitElement() }
-inline fun HtmlFactory.optgroup(setup: HTMLOptGroupElement.()->Unit): HTMLOptGroupElement = element<HTMLOptGroupElement>("optgroup").apply(setup).also { exitElement() }
-inline fun HtmlFactory.option(setup: HTMLOptionElement.()->Unit): HTMLOptionElement = element<HTMLOptionElement>("option").apply(setup).also { exitElement() }
-inline fun HtmlFactory.output(setup: HTMLOutputElement.()->Unit): HTMLOutputElement = element<HTMLOutputElement>("output").apply(setup).also { exitElement() }
-inline fun HtmlFactory.param(setup: HTMLParamElement.()->Unit): HTMLParamElement = element<HTMLParamElement>("param").apply(setup).also { exitElement() }
-inline fun HtmlFactory.progress(setup: HTMLProgressElement.()->Unit): HTMLProgressElement = element<HTMLProgressElement>("progress").apply(setup).also { exitElement() }
-inline fun HtmlFactory.q(setup: HTMLQuoteElement.()->Unit): HTMLQuoteElement = element<HTMLQuoteElement>("q").apply(setup).also { exitElement() }
-inline fun HtmlFactory.script(setup: HTMLScriptElement.()->Unit): HTMLScriptElement = element<HTMLScriptElement>("script").apply(setup).also { exitElement() }
-inline fun HtmlFactory.select(setup: HTMLSelectElement.()->Unit): HTMLSelectElement = element<HTMLSelectElement>("select").apply(setup).also { exitElement() }
-inline fun HtmlFactory.source(setup: HTMLSourceElement.()->Unit): HTMLSourceElement = element<HTMLSourceElement>("source").apply(setup).also { exitElement() }
-inline fun HtmlFactory.style(setup: HTMLStyleElement.()->Unit): HTMLStyleElement = element<HTMLStyleElement>("style").apply(setup).also { exitElement() }
-inline fun HtmlFactory.table(setup: HTMLTableElement.()->Unit): HTMLTableElement = element<HTMLTableElement>("table").apply(setup).also { exitElement() }
-inline fun HtmlFactory.tbody(setup: HTMLTableSectionElement.()->Unit): HTMLTableSectionElement = element<HTMLTableSectionElement>("tbody").apply(setup).also { exitElement() }
-inline fun HtmlFactory.td(setup: HTMLTableCellElement.()->Unit): HTMLTableCellElement = element<HTMLTableCellElement>("td").apply(setup).also { exitElement() }
-inline fun HtmlFactory.textarea(setup: HTMLTextAreaElement.()->Unit): HTMLTextAreaElement = element<HTMLTextAreaElement>("textarea").apply(setup).also { exitElement() }
-inline fun HtmlFactory.tfoot(setup: HTMLTableSectionElement.()->Unit): HTMLTableSectionElement = element<HTMLTableSectionElement>("tfoot").apply(setup).also { exitElement() }
-inline fun HtmlFactory.th(setup: HTMLTableCellElement.()->Unit): HTMLTableCellElement = element<HTMLTableCellElement>("th").apply(setup).also { exitElement() }
-inline fun HtmlFactory.thead(setup: HTMLTableSectionElement.()->Unit): HTMLTableSectionElement = element<HTMLTableSectionElement>("thead").apply(setup).also { exitElement() }
-inline fun HtmlFactory.time(setup: HTMLTimeElement.()->Unit): HTMLTimeElement = element<HTMLTimeElement>("time").apply(setup).also { exitElement() }
-inline fun HtmlFactory.tr(setup: HTMLTableRowElement.()->Unit): HTMLTableRowElement = element<HTMLTableRowElement>("tr").apply(setup).also { exitElement() }
-inline fun HtmlFactory.track(setup: HTMLTrackElement.()->Unit): HTMLTrackElement = element<HTMLTrackElement>("track").apply(setup).also { exitElement() }
-inline fun HtmlFactory.video(setup: HTMLVideoElement.()->Unit): HTMLVideoElement = element<HTMLVideoElement>("video").apply(setup).also { exitElement() }
+fun HtmlRenderer.text(text: Changing<String>): ()->Unit {
+    val element = text(when(val it = text.state) {
+        is DataState.Ready -> it.value
+        else -> ""  // TODO: Handle other states better
+    })
+    return text.subscribe {
+        element.nodeValue = when(it) {
+            is DataState.Ready -> it.value
+            else -> ""  // TODO: Handle other states better
+        }
+    }
+}
 
-inline fun HtmlFactory.abbr(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("abbr").apply(setup).also { exitElement() }
-inline fun HtmlFactory.acronym(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("acronym").apply(setup).also { exitElement() }
-inline fun HtmlFactory.address(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("address").apply(setup).also { exitElement() }
-inline fun HtmlFactory.article(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("article").apply(setup).also { exitElement() }
-inline fun HtmlFactory.aside(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("aside").apply(setup).also { exitElement() }
-inline fun HtmlFactory.b(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("b").apply(setup).also { exitElement() }
-inline fun HtmlFactory.basefont(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("basefont").apply(setup).also { exitElement() }
-inline fun HtmlFactory.bdi(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("bdi").apply(setup).also { exitElement() }
-inline fun HtmlFactory.bdo(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("bdo").apply(setup).also { exitElement() }
-inline fun HtmlFactory.big(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("big").apply(setup).also { exitElement() }
-inline fun HtmlFactory.br(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("br").apply(setup).also { exitElement() }
-inline fun HtmlFactory.center(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("center").apply(setup).also { exitElement() }
-inline fun HtmlFactory.cite(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("cite").apply(setup).also { exitElement() }
-inline fun HtmlFactory.code(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("code").apply(setup).also { exitElement() }
-inline fun HtmlFactory.colgroup(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("colgroup").apply(setup).also { exitElement() }
-inline fun HtmlFactory.datalist(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("datalist").apply(setup).also { exitElement() }
-inline fun HtmlFactory.dd(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("dd").apply(setup).also { exitElement() }
-inline fun HtmlFactory.dfn(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("dfn").apply(setup).also { exitElement() }
-inline fun HtmlFactory.dir(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("dir").apply(setup).also { exitElement() }
-inline fun HtmlFactory.div(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("div").apply(setup).also { exitElement() }
-inline fun HtmlFactory.dl(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("dl").apply(setup).also { exitElement() }
-inline fun HtmlFactory.dt(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("dt").apply(setup).also { exitElement() }
-inline fun HtmlFactory.em(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("em").apply(setup).also { exitElement() }
-inline fun HtmlFactory.figcaption(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("figcaption").apply(setup).also { exitElement() }
-inline fun HtmlFactory.figure(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("figure").apply(setup).also { exitElement() }
-inline fun HtmlFactory.footer(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("footer").apply(setup).also { exitElement() }
-inline fun HtmlFactory.frame(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("frame").apply(setup).also { exitElement() }
-inline fun HtmlFactory.frameset(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("frameset").apply(setup).also { exitElement() }
-inline fun HtmlFactory.h1(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("h1").apply(setup).also { exitElement() }
-inline fun HtmlFactory.h2(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("h2").apply(setup).also { exitElement() }
-inline fun HtmlFactory.h3(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("h3").apply(setup).also { exitElement() }
-inline fun HtmlFactory.h4(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("h4").apply(setup).also { exitElement() }
-inline fun HtmlFactory.h5(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("h5").apply(setup).also { exitElement() }
-inline fun HtmlFactory.h6(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("h6").apply(setup).also { exitElement() }
-inline fun HtmlFactory.head(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("head").apply(setup).also { exitElement() }
-inline fun HtmlFactory.header(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("header").apply(setup).also { exitElement() }
-inline fun HtmlFactory.html(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("html").apply(setup).also { exitElement() }
-inline fun HtmlFactory.i(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("i").apply(setup).also { exitElement() }
-inline fun HtmlFactory.kbd(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("kbd").apply(setup).also { exitElement() }
-inline fun HtmlFactory.legend(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("legend").apply(setup).also { exitElement() }
-inline fun HtmlFactory.main(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("main").apply(setup).also { exitElement() }
-inline fun HtmlFactory.mark(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("mark").apply(setup).also { exitElement() }
-inline fun HtmlFactory.nav(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("nav").apply(setup).also { exitElement() }
-inline fun HtmlFactory.noframes(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("noframes").apply(setup).also { exitElement() }
-inline fun HtmlFactory.noscript(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("noscript").apply(setup).also { exitElement() }
-inline fun HtmlFactory.p(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("p").apply(setup).also { exitElement() }
-inline fun HtmlFactory.picture(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("picture").apply(setup).also { exitElement() }
-inline fun HtmlFactory.pre(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("pre").apply(setup).also { exitElement() }
-inline fun HtmlFactory.rp(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("rp").apply(setup).also { exitElement() }
-inline fun HtmlFactory.rt(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("rt").apply(setup).also { exitElement() }
-inline fun HtmlFactory.ruby(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("ruby").apply(setup).also { exitElement() }
-inline fun HtmlFactory.s(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("s").apply(setup).also { exitElement() }
-inline fun HtmlFactory.samp(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("samp").apply(setup).also { exitElement() }
-inline fun HtmlFactory.section(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("section").apply(setup).also { exitElement() }
-inline fun HtmlFactory.small(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("small").apply(setup).also { exitElement() }
-inline fun HtmlFactory.span(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("span").apply(setup).also { exitElement() }
-inline fun HtmlFactory.strike(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("strike").apply(setup).also { exitElement() }
-inline fun HtmlFactory.strong(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("strong").apply(setup).also { exitElement() }
-inline fun HtmlFactory.sub(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("sub").apply(setup).also { exitElement() }
-inline fun HtmlFactory.summary(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("summary").apply(setup).also { exitElement() }
-inline fun HtmlFactory.sup(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("sup").apply(setup).also { exitElement() }
-inline fun HtmlFactory.svg(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("svg").apply(setup).also { exitElement() }
-inline fun HtmlFactory.template(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("template").apply(setup).also { exitElement() }
-inline fun HtmlFactory.title(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("title").apply(setup).also { exitElement() }
-inline fun HtmlFactory.tt(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("tt").apply(setup).also { exitElement() }
-inline fun HtmlFactory.u(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("u").apply(setup).also { exitElement() }
-inline fun HtmlFactory.ul(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("ul").apply(setup).also { exitElement() }
-inline fun HtmlFactory.`var`(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("var").apply(setup).also { exitElement() }
-inline fun HtmlFactory.wbr(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("wbr").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.a(setup: HTMLAnchorElement.()->Unit): HTMLAnchorElement = element<HTMLAnchorElement>("a").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.applet(setup: HTMLAppletElement.()->Unit): HTMLAppletElement = element<HTMLAppletElement>("applet").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.area(setup: HTMLAreaElement.()->Unit): HTMLAreaElement = element<HTMLAreaElement>("area").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.audio(setup: HTMLAudioElement.()->Unit): HTMLAudioElement = element<HTMLAudioElement>("audio").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.base(setup: HTMLBaseElement.()->Unit): HTMLBaseElement = element<HTMLBaseElement>("base").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.blockquote(setup: HTMLQuoteElement.()->Unit): HTMLQuoteElement = element<HTMLQuoteElement>("blockquote").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.body(setup: HTMLBodyElement.()->Unit): HTMLBodyElement = element<HTMLBodyElement>("body").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.button(setup: HTMLButtonElement.()->Unit): HTMLButtonElement = element<HTMLButtonElement>("button").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.canvas(setup: HTMLCanvasElement.()->Unit): HTMLCanvasElement = element<HTMLCanvasElement>("canvas").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.caption(setup: HTMLTableCaptionElement.()->Unit): HTMLTableCaptionElement = element<HTMLTableCaptionElement>("caption").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.col(setup: HTMLTableColElement.()->Unit): HTMLTableColElement = element<HTMLTableColElement>("col").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.data(setup: HTMLDataElement.()->Unit): HTMLDataElement = element<HTMLDataElement>("data").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.del(setup: HTMLModElement.()->Unit): HTMLModElement = element<HTMLModElement>("del").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.details(setup: HTMLDetailsElement.()->Unit): HTMLDetailsElement = element<HTMLDetailsElement>("details").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.dialog(setup: HTMLDialogElement.()->Unit): HTMLDialogElement = element<HTMLDialogElement>("dialog").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.embed(setup: HTMLEmbedElement.()->Unit): HTMLEmbedElement = element<HTMLEmbedElement>("embed").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.fieldset(setup: HTMLFieldSetElement.()->Unit): HTMLFieldSetElement = element<HTMLFieldSetElement>("fieldset").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.font(setup: HTMLFontElement.()->Unit): HTMLFontElement = element<HTMLFontElement>("font").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.form(setup: HTMLFormElement.()->Unit): HTMLFormElement = element<HTMLFormElement>("form").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.hr(setup: HTMLHRElement.()->Unit): HTMLHRElement = element<HTMLHRElement>("hr").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.iframe(setup: HTMLIFrameElement.()->Unit): HTMLIFrameElement = element<HTMLIFrameElement>("iframe").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.img(setup: HTMLImageElement.()->Unit): HTMLImageElement = element<HTMLImageElement>("img").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.input(setup: HTMLInputElement.()->Unit): HTMLInputElement = element<HTMLInputElement>("input").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.ins(setup: HTMLModElement.()->Unit): HTMLModElement = element<HTMLModElement>("ins").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.keygen(setup: HTMLKeygenElement.()->Unit): HTMLKeygenElement = element<HTMLKeygenElement>("keygen").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.label(setup: HTMLLabelElement.()->Unit): HTMLLabelElement = element<HTMLLabelElement>("label").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.li(setup: HTMLLIElement.()->Unit): HTMLLIElement = element<HTMLLIElement>("li").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.link(setup: HTMLLinkElement.()->Unit): HTMLLinkElement = element<HTMLLinkElement>("link").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.map(setup: HTMLMapElement.()->Unit): HTMLMapElement = element<HTMLMapElement>("map").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.marquee(setup: HTMLMarqueeElement.()->Unit): HTMLMarqueeElement = element<HTMLMarqueeElement>("marquee").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.menu(setup: HTMLMenuElement.()->Unit): HTMLMenuElement = element<HTMLMenuElement>("menu").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.meta(setup: HTMLMetaElement.()->Unit): HTMLMetaElement = element<HTMLMetaElement>("meta").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.meter(setup: HTMLMeterElement.()->Unit): HTMLMeterElement = element<HTMLMeterElement>("meter").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.`object`(setup: HTMLObjectElement.()->Unit): HTMLObjectElement = element<HTMLObjectElement>("object").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.ol(setup: HTMLOListElement.()->Unit): HTMLOListElement = element<HTMLOListElement>("ol").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.optgroup(setup: HTMLOptGroupElement.()->Unit): HTMLOptGroupElement = element<HTMLOptGroupElement>("optgroup").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.option(setup: HTMLOptionElement.()->Unit): HTMLOptionElement = element<HTMLOptionElement>("option").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.output(setup: HTMLOutputElement.()->Unit): HTMLOutputElement = element<HTMLOutputElement>("output").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.param(setup: HTMLParamElement.()->Unit): HTMLParamElement = element<HTMLParamElement>("param").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.progress(setup: HTMLProgressElement.()->Unit): HTMLProgressElement = element<HTMLProgressElement>("progress").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.q(setup: HTMLQuoteElement.()->Unit): HTMLQuoteElement = element<HTMLQuoteElement>("q").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.script(setup: HTMLScriptElement.()->Unit): HTMLScriptElement = element<HTMLScriptElement>("script").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.select(setup: HTMLSelectElement.()->Unit): HTMLSelectElement = element<HTMLSelectElement>("select").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.source(setup: HTMLSourceElement.()->Unit): HTMLSourceElement = element<HTMLSourceElement>("source").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.style(setup: HTMLStyleElement.()->Unit): HTMLStyleElement = element<HTMLStyleElement>("style").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.table(setup: HTMLTableElement.()->Unit): HTMLTableElement = element<HTMLTableElement>("table").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.tbody(setup: HTMLTableSectionElement.()->Unit): HTMLTableSectionElement = element<HTMLTableSectionElement>("tbody").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.td(setup: HTMLTableCellElement.()->Unit): HTMLTableCellElement = element<HTMLTableCellElement>("td").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.textarea(setup: HTMLTextAreaElement.()->Unit): HTMLTextAreaElement = element<HTMLTextAreaElement>("textarea").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.tfoot(setup: HTMLTableSectionElement.()->Unit): HTMLTableSectionElement = element<HTMLTableSectionElement>("tfoot").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.th(setup: HTMLTableCellElement.()->Unit): HTMLTableCellElement = element<HTMLTableCellElement>("th").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.thead(setup: HTMLTableSectionElement.()->Unit): HTMLTableSectionElement = element<HTMLTableSectionElement>("thead").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.time(setup: HTMLTimeElement.()->Unit): HTMLTimeElement = element<HTMLTimeElement>("time").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.tr(setup: HTMLTableRowElement.()->Unit): HTMLTableRowElement = element<HTMLTableRowElement>("tr").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.track(setup: HTMLTrackElement.()->Unit): HTMLTrackElement = element<HTMLTrackElement>("track").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.video(setup: HTMLVideoElement.()->Unit): HTMLVideoElement = element<HTMLVideoElement>("video").apply(setup).also { exitElement() }
+
+inline fun HtmlRenderer.abbr(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("abbr").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.acronym(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("acronym").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.address(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("address").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.article(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("article").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.aside(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("aside").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.b(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("b").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.basefont(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("basefont").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.bdi(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("bdi").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.bdo(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("bdo").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.big(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("big").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.br(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("br").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.center(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("center").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.cite(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("cite").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.code(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("code").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.colgroup(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("colgroup").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.datalist(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("datalist").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.dd(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("dd").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.dfn(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("dfn").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.dir(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("dir").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.div(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("div").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.dl(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("dl").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.dt(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("dt").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.em(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("em").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.figcaption(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("figcaption").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.figure(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("figure").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.footer(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("footer").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.frame(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("frame").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.frameset(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("frameset").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.h1(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("h1").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.h2(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("h2").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.h3(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("h3").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.h4(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("h4").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.h5(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("h5").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.h6(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("h6").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.head(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("head").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.header(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("header").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.html(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("html").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.i(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("i").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.kbd(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("kbd").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.legend(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("legend").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.main(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("main").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.mark(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("mark").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.nav(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("nav").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.noframes(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("noframes").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.noscript(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("noscript").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.p(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("p").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.picture(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("picture").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.pre(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("pre").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.rp(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("rp").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.rt(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("rt").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.ruby(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("ruby").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.s(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("s").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.samp(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("samp").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.section(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("section").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.small(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("small").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.span(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("span").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.strike(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("strike").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.strong(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("strong").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.sub(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("sub").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.summary(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("summary").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.sup(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("sup").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.svg(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("svg").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.template(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("template").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.title(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("title").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.tt(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("tt").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.u(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("u").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.ul(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("ul").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.`var`(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("var").apply(setup).also { exitElement() }
+inline fun HtmlRenderer.wbr(setup: HTMLElement.()->Unit): HTMLElement = element<HTMLElement>("wbr").apply(setup).also { exitElement() }
+
+expect inline fun createElement(tagName: String): HTMLElement
+expect inline fun HTMLElement.getChild(index: Int): Node?
+
+class DirectHtmlFactory: HtmlRenderer {
+    val stack = ArrayList<HTMLElement?>()
+
+    override var lastCompleted: HTMLElement? = null
+        private set
+
+    override fun <T : HTMLElement> element(tagName: String): T {
+        @Suppress("UNCHECKED_CAST")
+        return createElement(tagName).also {
+            stack.lastOrNull()?.appendChild(it)
+            stack.add(it)
+        } as T
+    }
+
+    override fun text(text: String): Text {
+        val t = Text(text)
+        stack.lastOrNull()?.let {
+            it.appendChild(t)
+        } ?: t
+        return t
+    }
+
+    override fun exitElement() {
+        lastCompleted = stack.removeLast()
+    }
+
+    override val current: HTMLElement? get() = stack.lastOrNull()
+    override fun push(context: HTMLElement?) {
+        stack.add(context)
+    }
+}
+
+
+class MergeHtmlFactory(): HtmlRenderer {
+    val stack = ArrayList<HTMLElement?>()
+    val childNumber = ArrayList<Int>()
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : HTMLElement> element(tagName: String): T {
+        val currentElement = stack.lastOrNull()
+        val currentIndex = childNumber.lastOrNull() ?: 0
+        val existing = currentElement?.getChild(currentIndex) as? HTMLElement
+        return if(existing == null) {
+            createElement(tagName).let { it as HTMLElement }.also {
+                stack.lastOrNull()?.appendChild(it)
+                stack.add(it)
+                childNumber.add(0)
+            } as T
+        } else if(existing.tagName != tagName) {
+            createElement(tagName).let { it as HTMLElement }.also {
+                currentElement?.replaceChild(existing, it)
+                childNumber.set(childNumber.lastIndex, currentIndex + 1)
+                stack.add(it)
+                childNumber.add(0)
+            } as T
+        } else {
+            val it = existing
+            childNumber.set(childNumber.lastIndex, currentIndex + 1)
+            stack.add(it as HTMLElement)
+            childNumber.add(0)
+            it as T
+        }
+    }
+
+    override fun text(text: String): Text {
+        val currentElement = stack.lastOrNull() ?: return Text(text)
+        val currentIndex = childNumber.lastOrNull() ?: 0
+        val existing = currentElement?.getChild(currentIndex) as? Text
+        val t = Text(text)
+        if(existing != null) currentElement.replaceChild(existing, t)
+        else currentElement.appendChild(t)
+        childNumber.set(childNumber.lastIndex, currentIndex + 1)
+        return t
+    }
+
+    override var lastCompleted: HTMLElement? = null
+        private set
+
+    override fun exitElement() {
+        lastCompleted = stack.removeLast()
+        childNumber.removeLast()
+    }
+
+    override val current: HTMLElement? get() = stack.lastOrNull()
+    override fun push(context: HTMLElement?) {
+        stack.add(context)
+        childNumber.add(0)
+    }
+}
+
+expect inline fun HTMLElement.addOnClick(crossinline action: ()->Unit)

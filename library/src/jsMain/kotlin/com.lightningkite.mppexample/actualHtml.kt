@@ -1,9 +1,6 @@
 package com.lightningkite.mppexample
 
 import kotlinx.browser.document
-import kotlinx.dom.appendText
-import org.w3c.dom.CharacterData
-import org.w3c.dom.HTMLMediaElement
 import org.w3c.dom.get
 
 actual typealias CSSStyleDeclaration = org.w3c.dom.css.CSSStyleDeclaration
@@ -65,78 +62,13 @@ actual typealias HTMLTableRowElement = org.w3c.dom.HTMLTableRowElement
 actual typealias HTMLTrackElement = org.w3c.dom.HTMLTrackElement
 actual typealias HTMLVideoElement = org.w3c.dom.HTMLVideoElement
 
-class DirectHtmlFactory: HtmlFactory {
-    val stack = ArrayList<HTMLElement>()
-    override fun <T : HTMLElement> element(tagName: String): T {
-        @Suppress("UNCHECKED_CAST")
-        return document.createElement(tagName).let { it as HTMLElement }.also {
-            stack.lastOrNull()?.appendChild(it)
-            stack.add(it)
-        } as T
-    }
+actual inline fun createElement(tagName: String): HTMLElement = document.createElement(tagName) as HTMLElement
+actual inline fun HTMLElement.getChild(index: Int): Node? = children.get(index)
 
-    override fun text(text: String) {
-        stack.lastOrNull()?.let {
-            it.appendChild(it.ownerDocument!!.createTextNode(text))
-        }
-    }
-
-    override fun exitElement() { stack.removeLast() }
+fun Text.test() {
+    this.nodeValue = "asdf"
 }
 
-class MergeHtmlFactory(val mergeWith: HTMLElement): HtmlFactory {
-    val stack = ArrayList<HTMLElement>()
-    val childNumber = ArrayList<Int>()
-    @Suppress("UNCHECKED_CAST")
-    override fun <T : HTMLElement> element(tagName: String): T {
-        val currentElement = stack.lastOrNull()
-        if(currentElement == null) {
-            return if(mergeWith.tagName != tagName) {
-                document.createElement(tagName).let { it as HTMLElement }.also {
-                    stack.add(it)
-                    childNumber.add(0)
-                } as T
-            } else {
-                stack.add(mergeWith)
-                childNumber.add(0)
-                mergeWith as T
-            }
-        }
-        val currentIndex = childNumber.lastOrNull() ?: 0
-        val existing = currentElement?.children?.get(currentIndex) as? HTMLElement
-        return if(existing == null) {
-            document.createElement(tagName).let { it as HTMLElement }.also {
-                stack.lastOrNull()?.appendChild(it)
-                stack.add(it)
-                childNumber.add(0)
-            } as T
-        } else if(existing.tagName != tagName) {
-            document.createElement(tagName).let { it as HTMLElement }.also {
-                currentElement?.replaceChild(existing, it)
-                childNumber.set(childNumber.lastIndex, currentIndex + 1)
-                stack.add(it)
-                childNumber.add(0)
-            } as T
-        } else {
-            val it = existing
-            childNumber.set(childNumber.lastIndex, currentIndex + 1)
-            stack.add(it as HTMLElement)
-            childNumber.add(0)
-            it as T
-        }
-    }
-
-    override fun text(text: String) {
-        val currentElement = stack.lastOrNull() ?: return
-        val currentIndex = childNumber.lastOrNull() ?: 0
-        val existing = currentElement?.children?.get(currentIndex) as? Text
-        if(existing != null) currentElement.replaceChild(existing, Text(text))
-        else currentElement.appendChild(Text(text))
-        childNumber.set(childNumber.lastIndex, currentIndex + 1)
-    }
-
-    override fun exitElement() {
-        stack.removeLast()
-        childNumber.removeLast()
-    }
+actual inline fun HTMLElement.addOnClick(crossinline action: () -> Unit) {
+    this.addEventListener("click", { action() })
 }
