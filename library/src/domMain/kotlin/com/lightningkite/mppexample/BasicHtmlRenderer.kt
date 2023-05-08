@@ -45,6 +45,7 @@ class BasicHtmlRenderer(val html: HtmlRenderer): SemanticRenderer {
 
     override fun hint(text: Changing<String>): Unit = with(html) {
         p {
+            className = "hint"
             text(text).autodispose()
         }
     }
@@ -71,75 +72,234 @@ class BasicHtmlRenderer(val html: HtmlRenderer): SemanticRenderer {
         icon: ImageWithSetting?,
         validationIssue: Changing<String?>
     ): Unit = with(html) {
-        div { text("TODO") }
+        label {
+            span {
+                text(label)
+            }
+            input {
+                type = "checkbox"
+                addOnChange {
+                    val s = DataState.Ready(it)
+                    if(value.state != s) value.state = s
+                }
+                value.subscribeAndNow {
+                    when(it) {
+                        is DataState.Error -> { /* TODO */ }
+                        DataState.Loading -> { /* TODO */ }
+                        is DataState.LoadingWithExample -> { /* TODO */ }
+                        is DataState.Ready -> if(it.value != checked) checked = it.value
+                    }
+                }.autodispose()
+            }
+        }
     }
 
     override fun date(
         date: Changeable<LocalDate?>,
-        hint: String,
+        label: String,
         min: Changing<LocalDate?>,
         max: Changing<LocalDate?>,
         icon: ImageWithSetting?,
         validationIssue: Changing<String?>
     ): Unit = with(html) {
-        div { text("TODO") }
+        label {
+            span {
+                text(label)
+            }
+            input {
+                type = "date"
+                addOnValue {
+                    try {
+                        val s = DataState.Ready(LocalDate.parse(it))
+                        if(date.state != s) date.state = s
+                    } catch(e: IllegalArgumentException) {
+                        if(date.state !is DataState.Error) DataState.Error(e)
+                    }
+                }
+                date.subscribeAndNow {
+                    when(it) {
+                        is DataState.Error -> { /* TODO */ }
+                        DataState.Loading -> { /* TODO */ }
+                        is DataState.LoadingWithExample -> { /* TODO */ }
+                        is DataState.Ready -> if(it.toString() != value) value = it.toString()
+                    }
+                }.autodispose()
+            }
+        }
     }
 
     override fun time(
         date: Changeable<LocalTime?>,
-        hint: String,
+        label: String,
         min: Changing<LocalTime?>,
         max: Changing<LocalTime?>,
         icon: ImageWithSetting?,
         validationIssue: Changing<String?>
     ): Unit = with(html) {
-        div { text("TODO") }
+        label {
+            span {
+                text(label)
+            }
+            input {
+                type = "time"
+                addOnValue {
+                    try {
+                        val s = DataState.Ready(LocalTime.parse(it))
+                        if(date.state != s) date.state = s
+                    } catch(e: IllegalArgumentException) {
+                        if(date.state !is DataState.Error) DataState.Error(e)
+                    }
+                }
+                date.subscribeAndNow {
+                    when(it) {
+                        is DataState.Error -> { /* TODO */ }
+                        DataState.Loading -> { /* TODO */ }
+                        is DataState.LoadingWithExample -> { /* TODO */ }
+                        is DataState.Ready -> if(it.toString().take("hh:mm".length) != value) {
+                            value = it.toString().take("hh:mm".length)
+                        }
+                    }
+                }.autodispose()
+            }
+        }
     }
 
     override fun dateTime(
         date: Changeable<LocalDateTime?>,
-        hint: String,
+        label: String,
         min: Changing<LocalDateTime?>,
         max: Changing<LocalDateTime?>,
         icon: ImageWithSetting?,
         validationIssue: Changing<String?>
     ): Unit = with(html) {
-        div { text("TODO") }
+        label {
+            span {
+                text(label)
+            }
+            input {
+                type = "datetime-local"
+                addOnValue {
+                    try {
+                        val s = DataState.Ready(LocalDateTime.parse(it))
+                        if(date.state != s) date.state = s
+                    } catch(e: IllegalArgumentException) {
+                        if(date.state !is DataState.Error) DataState.Error(e)
+                    }
+                }
+                date.subscribeAndNow {
+                    when(it) {
+                        is DataState.Error -> { /* TODO */ }
+                        DataState.Loading -> { /* TODO */ }
+                        is DataState.LoadingWithExample -> { /* TODO */ }
+                        is DataState.Ready -> if(it.toString().take("YYYY-MM-DDThh:mm".length) != value) value = it.toString().take("YYYY-MM-DDThh:mm".length)
+                    }
+                }.autodispose()
+            }
+        }
     }
 
     override fun field(
         text: Changeable<String>,
-        hint: String,
+        label: String,
         keyboardHints: KeyboardHints,
         icon: ImageWithSetting?,
         validationIssue: Changing<String?>
     ): Unit = with(html) {
-        div { text("TODO") }
+        label {
+            span {
+                text(label)
+            }
+            input {
+                type = "text"
+                addOnValue {
+                    val s = DataState.Ready(it)
+                    try {
+                        if(text.state != s) text.state = s
+                    } catch(e: IllegalArgumentException) {
+                        if(text.state !is DataState.Error) DataState.Error(e)
+                    }
+                }
+                text.subscribeAndNow {
+                    when(it) {
+                        is DataState.Error -> { /* TODO */ }
+                        DataState.Loading -> { /* TODO */ }
+                        is DataState.LoadingWithExample -> { /* TODO */ }
+                        is DataState.Ready -> if(it.value != value) value = it.value
+                    }
+                }.autodispose()
+            }
+        }
     }
 
     override fun textArea(
         text: Changeable<String>,
-        hint: String,
+        label: String,
         keyboardHints: KeyboardHints,
         icon: ImageWithSetting?,
         validationIssue: Changing<String?>
     ): Unit = with(html) {
-        div { text("TODO") }
+        label {
+            span {
+                text(label)
+            }
+            textarea {
+                addOnValue {
+                    val s = DataState.Ready(it)
+                    try {
+                        if(text.state != s) text.state = s
+                    } catch(e: IllegalArgumentException) {
+                        if(text.state !is DataState.Error) DataState.Error(e)
+                    }
+                }
+                text.subscribeAndNow {
+                    when(it) {
+                        is DataState.Error -> { /* TODO */ }
+                        DataState.Loading -> { /* TODO */ }
+                        is DataState.LoadingWithExample -> { /* TODO */ }
+                        is DataState.Ready -> if(it.value != value) value = it.value
+                    }
+                }.autodispose()
+            }
+        }
     }
 
     override fun password(
         text: Changeable<String>,
-        hint: String,
+        label: String,
         keyboardHints: KeyboardHints,
         icon: ImageWithSetting?,
         validationIssue: Changing<String?>
     ): Unit = with(html) {
-        div { text("TODO") }
+        label {
+            span {
+                text(label)
+            }
+            input {
+                type = "password"
+                addOnValue {
+                    val s = DataState.Ready(it)
+                    try {
+                        if(text.state != s) text.state = s
+                    } catch(e: IllegalArgumentException) {
+                        if(text.state !is DataState.Error) DataState.Error(e)
+                    }
+                }
+                text.subscribeAndNow {
+                    when(it) {
+                        is DataState.Error -> { /* TODO */ }
+                        DataState.Loading -> { /* TODO */ }
+                        is DataState.LoadingWithExample -> { /* TODO */ }
+                        is DataState.Ready -> value = it.value
+                    }
+                }.autodispose()
+            }
+        }
     }
 
     override fun <T> select(
         selected: Changeable<T>,
         options: Changing<List<T>>,
+        label: String,
         toString: (T) -> String,
         validationIssue: Changing<String?>,
         preferRadio: Boolean
@@ -162,31 +322,65 @@ class BasicHtmlRenderer(val html: HtmlRenderer): SemanticRenderer {
     }
 
     override fun weight(number: Float, content: () -> Unit): Unit = with(html) {
-        div { text("TODO") }
+        content()
+        lastCompleted?.style?.flexBasis = number.toString()
     }
 
     override fun overlap(content: () -> Unit): Unit = with(html) {
-        div { text("TODO") }
+        div {
+            className = "overlap"
+            content()
+        }
     }
 
     override fun scrolls(content: () -> Unit): Unit = with(html) {
-        div { text("TODO") }
+        div {
+            className = "scrolls"
+            content()
+        }
     }
 
     override fun frame(horizontal: Align, vertical: Align, margin: Int, content: () -> Unit): Unit = with(html) {
-        div { text("TODO") }
+        div {
+            className = "frame"
+            style.margin = margin.toString() + "px"
+            // TODO: horizontal
+            // TODO: vertical
+            content()
+        }
     }
 
     override fun shown(shown: Changing<Boolean>, content: () -> Unit): Unit = with(html) {
-        div { text("TODO") }
+        content()
+        val element = lastCompleted
+        shown.subscribeAndNow {
+            when(it){
+                is DataState.Error -> element?.hidden = true
+                DataState.Loading -> element?.hidden = true
+                is DataState.LoadingWithExample -> element?.hidden = true
+                is DataState.Ready -> element?.hidden = !it.value
+            }
+        }.autodispose()
     }
 
     override fun alpha(alpha: Changing<Float>, content: () -> Unit): Unit = with(html) {
-        div { text("TODO") }
+        content()
+        val element = lastCompleted
+        alpha.subscribeAndNow {
+            when(it){
+                is DataState.Error -> element?.style?.opacity = "0"
+                DataState.Loading -> element?.style?.opacity = "0"
+                is DataState.LoadingWithExample -> element?.style?.opacity = "0"
+                is DataState.Ready -> element?.style?.opacity = it.value.toString()
+            }
+        }.autodispose()
     }
 
     override fun card(importance: Importance, content: () -> Unit): Unit = with(html) {
-        div { text("TODO") }
+        div {
+            className = "card"
+            content()
+        }
     }
 
     override fun space(magnitude: Int): Unit = with(html) {

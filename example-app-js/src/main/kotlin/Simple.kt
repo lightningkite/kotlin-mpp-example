@@ -46,3 +46,35 @@ fun main() {
     ))
 
 }
+
+fun ScreenRegistry.url(urls: List<ScreenRegistry.Urlish>, hash: ScreenRegistry.Urlish?): String = buildString {
+    for (url in urls) {
+        append(url.name)
+        append('/')
+        for(arg in url.arguments) {
+            append(arg)
+            append('/')
+        }
+    }
+    hash?.let { url ->
+        append("#")
+        append(url.name)
+        append('/')
+        for(arg in url.arguments) {
+            append(arg)
+            append('/')
+        }
+    }
+}
+fun ScreenRegistry.url(string: String): List<ScreenRegistry.Urlish>? {
+    val parts = string.substringBefore('?').substringBefore('#').split('/').toMutableList()
+    val hash = string.substringAfter('#', "").substringBefore('?').split('/')
+    return buildList {
+        while(parts.isNotEmpty()) {
+            val name = parts.removeAt(0)
+            val count = argumentCount(name) ?: return null
+            val args = (0 until count).map { parts.removeAt(0) }
+            add(ScreenRegistry.Urlish(name, args))
+        }
+    }
+}

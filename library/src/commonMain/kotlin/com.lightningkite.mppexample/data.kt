@@ -9,6 +9,7 @@ sealed interface DataState<out T> {
     value class Ready<T>(val value: T): DataState<T> {
         override fun <B> flatMap(transform: (T) -> DataState<B>): DataState<B> = transform(value)
         override fun <B> map(transform: (T) -> B): DataState<B> = Ready(transform(value))
+        override fun toString(): String = value.toString()
     }
     @JvmInline
     value class LoadingWithExample<T>(val example: T): DataState<T> {
@@ -29,6 +30,10 @@ sealed interface DataState<out T> {
 interface Changing<out T> {
     val state: DataState<T>
     fun subscribe(action: (DataState<T>) -> Unit): () -> Unit
+}
+fun <T> Changing<T>.subscribeAndNow(action: (DataState<T>) -> Unit): () -> Unit {
+    action(this.state)
+    return subscribe(action)
 }
 interface Changeable<T>: Changing<T> {
     override var state: DataState<T>

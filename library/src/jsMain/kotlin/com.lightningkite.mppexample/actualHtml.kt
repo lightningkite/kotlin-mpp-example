@@ -72,3 +72,13 @@ fun Text.test() {
 actual inline fun HTMLElement.addOnClick(crossinline action: () -> Unit) {
     this.addEventListener("click", { action() })
 }
+actual inline fun HTMLInputElement.addOnValue(crossinline action: (string: String) -> Unit) {
+    this.addEventListener("input", { action(value) })
+}
+actual inline fun HTMLInputElement.addOnChange(crossinline action: (on: Boolean) -> Unit) {
+    this.addEventListener("change", { action(checked) })
+}
+
+actual inline fun HTMLTextAreaElement.addOnValue(crossinline action: (string: String) -> Unit) {
+    this.addEventListener("input", { action(value) })
+}

@@ -292,6 +292,10 @@ actual abstract class Element: Node() {
     actual open var slot: String by attributeString("slot")
 
     val attributes = HashMap<String, String>()
+    val textContent get() = object: ReadWriteProperty<Node, String> {
+        override fun getValue(thisRef: Node, property: KProperty<*>): String = (children.getOrNull(0) as? Text)?.data ?: ""
+        override fun setValue(thisRef: Node, property: KProperty<*>, value: String) { children.clear(); children.add(Text(value)) }
+    }
     fun attributeString(key: String) = object: ReadWriteProperty<Node, String> {
         override fun getValue(thisRef: Node, property: KProperty<*>): String = attributes[key] ?: ""
         override fun setValue(thisRef: Node, property: KProperty<*>, value: String) { attributes[key] = value }
@@ -820,6 +824,7 @@ actual abstract class HTMLTextAreaElement: HTMLElement() {
     actual open var required: Boolean by attributeBoolean("required")
     actual open var rows: Int by attributeInt("rows")
     actual open var wrap: String by attributeString("wrap")
+    actual open var value: String by textContent
 }
 class HTMLTimeElementImpl(override val tagName: String): HTMLTimeElement() {
     override val style: CSSStyleDeclaration = CSSStyleDeclarationImpl()
@@ -919,3 +924,6 @@ fun createElementByTagName(tagName: String): HTMLElement {
 
 actual inline fun HTMLElement.getChild(index: Int): Node? = this.children.getOrNull(index)
 actual inline fun HTMLElement.addOnClick(crossinline action: () -> Unit) = Unit
+actual inline fun HTMLInputElement.addOnValue(crossinline action: (string: String) -> Unit) = Unit
+actual inline fun HTMLInputElement.addOnChange(crossinline action: (on: Boolean) -> Unit) = Unit
+actual inline fun HTMLTextAreaElement.addOnValue(crossinline action: (string: String) -> Unit) = Unit

@@ -24,11 +24,21 @@ data class Action(
     val onSelect: ()->Unit
 )
 data class KeyboardHints(
-    val autocomplete: AutoComplete,
     val case: KeyboardCase,
     val type: KeyboardType,
+    val autocomplete: AutoComplete? = null,
     val action: Action? = null
-)
+) {
+    companion object {
+        val paragraph = KeyboardHints(KeyboardCase.Sentences, KeyboardType.Text)
+        val title = KeyboardHints(KeyboardCase.Words, KeyboardType.Text)
+        val id = KeyboardHints(KeyboardCase.Letters, KeyboardType.Text)
+        val integer = KeyboardHints(KeyboardCase.None, KeyboardType.Integer)
+        val decimal = KeyboardHints(KeyboardCase.None, KeyboardType.Decimal)
+        val phone = KeyboardHints(KeyboardCase.None, KeyboardType.Phone)
+        val password = KeyboardHints(KeyboardCase.None, KeyboardType.Text)
+    }
+}
 enum class AutoComplete { Email, Password, NewPassword, Phone }
 enum class KeyboardCase { None, Letters, Words, Sentences }
 enum class KeyboardType { Text, Integer, Phone, Decimal }

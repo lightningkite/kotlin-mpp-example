@@ -582,6 +582,7 @@ expect abstract class HTMLTextAreaElement: HTMLElement {
     open var required: Boolean  // required
     open var rows: Int  // rows
     open var wrap: String  // wrap
+    open var value: String
 }
 expect abstract class HTMLTimeElement: HTMLElement {
     open var dateTime: String  // datetime
@@ -875,3 +876,7 @@ class MergeHtmlFactory(): HtmlRenderer {
 }
 
 expect inline fun HTMLElement.addOnClick(crossinline action: ()->Unit)
+expect inline fun HTMLInputElement.addOnValue(crossinline action: (string: String) -> Unit)
+expect inline fun HTMLInputElement.addOnChange(crossinline action: (on: Boolean) -> Unit)
+expect inline fun HTMLTextAreaElement.addOnValue(crossinline action: (string: String) -> Unit)
+

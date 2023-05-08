@@ -17,6 +17,8 @@ interface RelativeNavigation<CONTEXT> {
     fun clear()
 }
 
+typealias Stack<C> = Property<List<Screen<C>>>
+
 class AppContext(
     val renderer: SemanticRenderer,
     val navigation: RelativeNavigation<AppContext>,
@@ -37,6 +39,7 @@ object ScreenRegistry {
     class Handler<VG: Any>(
         val type: KClass<VG>,
         val name: String,
+        val argCount: Int,
         val parse: (arguments: List<String>) -> VG,
         val render: (VG) -> List<String>
     )
@@ -52,20 +55,22 @@ object ScreenRegistry {
             }
         }
     }
-    fun parse(key: String, arguments: List<String>): Any? {
+    fun parse(urlish: Urlish): Any? {
         @Suppress("UNCHECKED_CAST")
-        return (_handlers2[key] as? Handler<Any>)?.let {
-            it.parse(arguments)
+        return (_handlers2[urlish.name] as? Handler<Any>)?.let {
+            it.parse(urlish.arguments)
         }
     }
+    fun argumentCount(name: String): Int? = _handlers2[name]?.argCount
 
     fun <T : Any> register(
         type: KClass<T>,
         name: String,
+        argCount: Int,
         parse: (arguments: List<String>) -> T,
         render: (T) -> List<String>
     ) {
-        val h = Handler(type, name, parse, render)
+        val h = Handler(type, name, argCount, parse, render)
         _handlers[type] = h
         _handlers2[name] = h
     }
