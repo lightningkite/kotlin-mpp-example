@@ -24,14 +24,11 @@ class AppContext(
     val navigation: RelativeNavigation<AppContext>,
 )
 
-interface ViewGenerator<CONTEXT> {
-    fun render(context: CONTEXT)
-}
-
 annotation class Autopath
-interface Screen<CONTEXT> : ViewGenerator<CONTEXT> {
+interface Screen<CONTEXT> {
     val title: Changing<String> get() = Constant("")
     val actions: Changing<List<Action>> get() = Constant(listOf())
+    fun render(context: CONTEXT)
 }
 
 

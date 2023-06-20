@@ -39,6 +39,8 @@ interface Changeable<T>: Changing<T> {
     override var state: DataState<T>
 }
 
+typealias PageIterator<T> = () -> Changing<List<T>>
+
 interface InstantChanging<T> : Changing<T> {
     val value: T
 }
