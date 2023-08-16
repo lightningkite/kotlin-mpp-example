@@ -1,11 +1,17 @@
 package com.lightningkite.mppexampleapp
 
+import com.lightningkite.mppexample.BasicHtmlViewFactory
+import com.lightningkite.mppexample.HtmlView
+import com.lightningkite.mppexample.Property
 import kotlinx.browser.document
+import kotlinx.browser.window
 import org.w3c.dom.HTMLParagraphElement
 
 fun main() {
-    (document.createElement("p") as HTMLParagraphElement).apply {
-        this.innerText = platform
-        setViewToRed(this)
-    }.also { document.body!!.appendChild(it) }
+    val counter = Property(0)
+    window.setInterval({
+        counter.current++
+        println(counter.current)
+    }, 1000)
+    document.body!!.appendChild((BasicHtmlViewFactory().myView(counter) as HtmlView<*>).element)
 }
