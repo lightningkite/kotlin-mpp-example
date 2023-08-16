@@ -38,6 +38,25 @@ interface SemanticRenderer {
     fun expandingContent(expanded: Changeable<Boolean> = Property(false), content: ()->Unit)
     fun onClick(action: ()->Unit, content: ()->Unit)
     fun lazy(view: Changing<()->Unit>)
+
+    /**
+    Typically used for large sets of content with filters, navigation, and sorting.
+     Good example is the Gmail interface.
+     **/
+    fun sidebar(
+        appIcon: Image,
+        barContent: ()->Unit,
+        sideIcon: Image,
+        sideTitle: String,
+        sideContent: ()->Unit,
+        innerContent: ()->Unit
+    )
+
+    fun webNav(
+        appLogo: Image,
+        links: ()->Unit,
+        innerContent: ()->Unit
+    )
 }
 
 fun SemanticRenderer.header(layer: Int, text: String) = header(layer, Constant(text))

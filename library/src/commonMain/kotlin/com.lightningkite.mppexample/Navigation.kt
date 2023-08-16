@@ -8,7 +8,7 @@ interface RelativeNavigation<CONTEXT> {
     fun sub(): RelativeNavigation<CONTEXT>
     val dialog: RelativeNavigation<CONTEXT>
 
-    val current: Changing<Screen<CONTEXT>>
+    val current: InstantChangeable<Screen<CONTEXT>>
 
     fun push(screen: Screen<CONTEXT>)
     fun replace(screen: Screen<CONTEXT>)
@@ -17,7 +17,7 @@ interface RelativeNavigation<CONTEXT> {
     fun clear()
 }
 
-typealias Stack<C> = Property<List<Screen<C>>>
+typealias Stack<C> = InstantChangeable<List<Screen<C>>>
 
 class AppContext(
     val renderer: SemanticRenderer,
@@ -34,6 +34,7 @@ interface Screen<CONTEXT> : ViewGenerator<CONTEXT> {
     val actions: Changing<List<Action>> get() = Constant(listOf())
 }
 
+data class Link(val on: RelativeNavigation<*>)
 
 object ScreenRegistry {
     class Handler<VG: Any>(
@@ -75,3 +76,15 @@ object ScreenRegistry {
         _handlers2[name] = h
     }
 }
+
+/**
+ *
+ * Push/Pop/Replace/Reset/Clear
+ * Observe stack
+ * Works without actually rendering the view, ideally
+ *
+ * ON WEB:
+ * Update the URL bar
+ * Render links properly as AHREF ideally
+ *
+ */

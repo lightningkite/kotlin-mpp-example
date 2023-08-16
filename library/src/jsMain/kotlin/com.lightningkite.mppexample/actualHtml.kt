@@ -1,7 +1,9 @@
 package com.lightningkite.mppexample
 
 import kotlinx.browser.document
+import kotlinx.browser.window
 import org.w3c.dom.get
+
 
 actual typealias CSSStyleDeclaration = org.w3c.dom.css.CSSStyleDeclaration
 actual typealias Node = org.w3c.dom.Node

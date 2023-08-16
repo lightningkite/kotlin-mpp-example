@@ -43,3 +43,8 @@ enum class AutoComplete { Email, Password, NewPassword, Phone }
 enum class KeyboardCase { None, Letters, Words, Sentences }
 enum class KeyboardType { Text, Integer, Phone, Decimal }
 enum class Importance { Accent, Primary, Normal }
+
+sealed class MenuItem {
+    data class Category(val name: String, val icon: Image? = null, val items: List<MenuItem>, val action: ()->Unit): MenuItem()
+    data class Action(val name: String, val icon: Image? = null, val action: ()->Unit): MenuItem()
+}
