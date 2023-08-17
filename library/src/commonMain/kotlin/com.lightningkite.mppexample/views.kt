@@ -1,14 +1,13 @@
 package com.lightningkite.mppexample
 
-interface View: ListeningLifecycle
-interface SimpleLabel: View {
+expect class Context
+expect abstract class View(context: Context, ): ListeningLifecycle {
+    val context: Context
+}
+expect class SimpleLabel(context: Context, ): View {
     var text: String
 }
-
-interface ViewFactory {
-    fun simpleLabel(): SimpleLabel
-    fun column(vararg views: View): View
-}
+expect class Column(context: Context, vararg views: View): View
 
 /*
 

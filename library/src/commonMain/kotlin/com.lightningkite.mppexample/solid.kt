@@ -45,12 +45,12 @@ class RerunScope(val action: RerunScope.()->Unit) {
     val <T> Readable<T>.value: T
         get() {
             rerunOn(this)
-            return current
+            return latest
         }
     var <T> Writable<T>.value: T
         get() = (this as Readable<T>).value
         set(value) {
-            this.current = value
+            this.latest = value
         }
 
     fun clear() {
@@ -63,15 +63,15 @@ interface Listenable {
     fun addListener(listener: ()->Unit): ()->Unit
 }
 interface Readable<T>: Listenable {
-    val current: T
+    val latest: T
 }
 interface Writable<T>: Readable<T> {
-    override var current: T
+    override var latest: T
 }
 
 class Property<T>(startValue: T): Writable<T> {
     val listeners = HashSet<()->Unit>()
-    override var current: T = startValue
+    override var latest: T = startValue
         set(value) {
             field = value
             listeners.toList().forEach { it() }

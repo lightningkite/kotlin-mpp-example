@@ -3,8 +3,11 @@ package com.lightningkite.mppexample
 import kotlinx.browser.document
 import org.w3c.dom.*
 
-open class HtmlView<Element : HTMLElement>(val element: Element) : View {
-    init {
+actual class Context()
+
+actual abstract class View actual constructor(actual val context: Context, ): ListeningLifecycle {
+    abstract val element: HTMLElement
+    protected fun configure() {
         element.asDynamic().controller = this
     }
     companion object {
@@ -12,7 +15,7 @@ open class HtmlView<Element : HTMLElement>(val element: Element) : View {
             MutationObserver { list, ob ->
                 list.forEach {
                     it.removedNodes.asList().forEach {
-                        (it.asDynamic().controller as? HtmlView<*>)?.let {
+                        (it.asDynamic().controller as? View)?.let {
                             it.removeList.forEach { it() }
                             it.removeList.clear()
                         }
@@ -30,19 +33,20 @@ open class HtmlView<Element : HTMLElement>(val element: Element) : View {
     }
 }
 
-class TextHtmlView(element: HTMLParagraphElement): HtmlView<HTMLParagraphElement>(element), SimpleLabel {
-    override var text: String
+actual class SimpleLabel actual constructor(context: Context, ): View(context) {
+    override val element: HTMLParagraphElement = document.createElement("p") as HTMLParagraphElement
+    init { configure() }
+    actual var text: String
         get() = element.textContent ?: ""
         set(value) {
             element.textContent = value
         }
 }
-
-class BasicHtmlViewFactory : ViewFactory {
-    override fun simpleLabel(): SimpleLabel = TextHtmlView(document.createElement("p") as HTMLParagraphElement)
-    override fun column(vararg views: View): View = HtmlView(document.createElement("div") as HTMLDivElement).apply {
-        for(view in views) {
-            element.appendChild((view as HtmlView<*>).element)
-        }
+actual class Column actual constructor(context: Context, vararg views: View): View(context) {
+    override val element: HTMLDivElement = document.createElement("div") as HTMLDivElement
+    init {
+        configure()
+        views.forEach { element.appendChild(it.element) }
     }
 }
+
