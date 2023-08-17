@@ -1,13 +1,19 @@
 package com.lightningkite.mppexample
 
-expect class Context
-expect abstract class View(context: Context, ): ListeningLifecycle {
-    val context: Context
+expect class ViewContext {
+    val onRemove: OnRemoveHandler
 }
-expect class SimpleLabel(context: Context, ): View {
-    var text: String
-}
-expect class Column(context: Context, vararg views: View): View
+
+expect open class View
+typealias OnRemoveHandler = (onRemove: ()->Unit)->Unit
+expect val View.onRemove: OnRemoveHandler
+
+expect fun ViewContext.simpleLabel(setup: SimpleLabel.()->Unit = {}): SimpleLabel
+expect class SimpleLabel: View
+expect var SimpleLabel.text: String
+
+expect fun ViewContext.column(vararg views: View, setup: Column.()->Unit = {}): Column
+expect class Column: View
 
 /*
 
