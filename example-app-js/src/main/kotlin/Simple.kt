@@ -15,6 +15,6 @@ fun main() {
     document.body!!.appendChild(context.myView(counter))
 
     document.body!!.appendChild(context.element<HTMLParagraphElement>("p") {
-        this::textContent { counter.value.toString() }
+        ::textContent { counter.value.toString() }
     })
 }
