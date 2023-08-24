@@ -107,6 +107,10 @@ actual var SimpleLabel.text: String
 
 @Suppress("ACTUAL_WITHOUT_EXPECT")
 actual typealias Column = HTMLDivElement
-actual inline fun ViewContext.column(setup: Column.() -> Unit): Unit = element("div", setup)
+actual inline fun ViewContext.column(setup: Column.() -> Unit): Unit = element<HTMLDivElement>("div") {
+    style.display = "flex"
+    style.flexDirection = "column"
+    setup()
+}
 
 actual fun ViewContext.padding(): ViewWrapper = containsNext<HTMLDivElement>("div") { style.padding = "1rem" }

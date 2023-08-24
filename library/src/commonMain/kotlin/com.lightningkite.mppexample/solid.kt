@@ -22,20 +22,26 @@ object ListeningLifecycleStack {
     }
 }
 
-operator fun <T, IGNORED> ((T) -> IGNORED).invoke(actionToCalculate: RerunScope.() -> T) = rerunScope {
+@DslMarker
+annotation class ReactiveB
+
+@ReactiveB
+operator fun <T, IGNORED> ((T) -> IGNORED).invoke(actionToCalculate: ReactiveScope.() -> T) = reactiveScope {
     this@invoke(actionToCalculate(this))
 }
 
-operator fun <T> KMutableProperty0<T>.invoke(actionToCalculate: RerunScope.() -> T) = rerunScope {
+@ReactiveB
+operator fun <T> KMutableProperty0<T>.invoke(actionToCalculate: ReactiveScope.() -> T) = reactiveScope {
     this@invoke.set(actionToCalculate(this))
 }
 
-fun rerunScope(action: RerunScope.() -> Unit) {
-    val dm = RerunScope(action)
+@ReactiveB
+fun reactiveScope(action: ReactiveScope.() -> Unit) {
+    val dm = ReactiveScope(action)
     ListeningLifecycleStack.onRemove { dm.clear() }
 }
 
-class RerunScope(val action: RerunScope.() -> Unit) {
+class ReactiveScope(val action: ReactiveScope.() -> Unit) {
     private val removers: HashMap<Listenable, () -> Unit> = HashMap()
     private val latestPass: HashSet<Listenable> = HashSet()
     fun rerunOn(listenable: Listenable) {
@@ -62,15 +68,11 @@ class RerunScope(val action: RerunScope.() -> Unit) {
         }
     }
 
-    val <T> Readable<T>.value: T
+    @ReactiveB
+    val <T> Readable<T>.current: T
         get() {
             rerunOn(this)
-            return latest
-        }
-    var <T> Writable<T>.value: T
-        get() = (this as Readable<T>).value
-        set(value) {
-            this.latest = value
+            return once
         }
 
     fun clear() {
@@ -88,21 +90,23 @@ interface Listenable {
 }
 
 interface Readable<T> : Listenable {
-    val latest: T
+    val once: T
 }
 
 interface Writable<T> : Readable<T> {
-    override var latest: T
+    infix fun set(value: T)
+    infix fun modify(update: (T)->T) = set(update(once))
 }
 
 class Property<T>(startValue: T) : Writable<T> {
     val listeners = HashSet<() -> Unit>()
-    override var latest: T = startValue
-        set(value) {
+    override var once: T = startValue
+        private set(value) {
             field = value
             listeners.toList().forEach { it() }
         }
 
+    override infix fun set(value: T) { this.once = value }
     override fun addListener(listener: () -> Unit): () -> Unit {
         listeners.add(listener)
         return {

@@ -144,8 +144,8 @@ data class HSVColor(
     val value: Float = 0f
 ) {
     fun toRGB(): Color {
-        val h = (hue.circles * 6).toInt()
-        val f = hue.circles * 6 - h
+        val h = (hue.turns * 6).toInt()
+        val f = hue.turns * 6 - h
         val p = value * (1 - saturation)
         val q = value * (1 - f * saturation)
         val t = value * (1 - (1 - f) * saturation)
