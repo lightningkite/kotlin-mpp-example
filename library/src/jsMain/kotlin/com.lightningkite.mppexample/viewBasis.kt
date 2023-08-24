@@ -24,9 +24,9 @@ actual class ViewContext() {
 }
 
 @Suppress("ACTUAL_WITHOUT_EXPECT")
-actual typealias View = HTMLElement
+actual typealias NView = HTMLElement
 
-actual val View.onRemove: OnRemoveHandler
+actual val NView.onRemove: OnRemoveHandler
     get() {
         return {
             this.removeListeners.add(it)
@@ -64,19 +64,19 @@ private object RemoveListeners {
     }
 }
 
-@Suppress("ACTUAL_WITHOUT_EXPECT")
-actual typealias SimpleLabel = HTMLParagraphElement
-actual inline fun ViewContext.simpleLabel(setup: SimpleLabel.() -> Unit): SimpleLabel = element("p", setup)
-actual var SimpleLabel.text: String
-    get() = this.textContent ?: ""
-    set(value) {
-        this.textContent = value
-    }
-
-
-@Suppress("ACTUAL_WITHOUT_EXPECT")
-actual typealias Column = HTMLDivElement
-actual inline fun ViewContext.column(vararg views: View, setup: Column.() -> Unit): Column = element("div") {
-    views.forEach { appendChild(it) }
-    setup()
-}
+//@Suppress("ACTUAL_WITHOUT_EXPECT")
+//actual typealias SimpleLabel = HTMLParagraphElement
+//actual inline fun ViewContext.simpleLabel(setup: SimpleLabel.() -> Unit): SimpleLabel = element("p", setup)
+//actual var SimpleLabel.text: String
+//    get() = this.textContent ?: ""
+//    set(value) {
+//        this.textContent = value
+//    }
+//
+//
+//@Suppress("ACTUAL_WITHOUT_EXPECT")
+//actual typealias Column = HTMLDivElement
+//actual inline fun ViewContext.column(vararg views: NView, setup: Column.() -> Unit): Column = element("div") {
+//    views.forEach { appendChild(it) }
+//    setup()
+//}
