@@ -3,7 +3,19 @@ package com.lightningkite.mppexample
 import kotlinx.browser.document
 import org.w3c.dom.*
 
-actual class ViewContext() {
+actual class ViewContext(
+    parent: HTMLElement
+) {
+    val stack = arrayListOf(parent)
+    inline fun <T: HTMLElement> stackUse(item: T, action: T.()->Unit) = ListeningLifecycleStack.useIn(this.onRemove) {
+        stack.add(item)
+        try {
+            action(item)
+        } finally {
+            stack.removeLast()
+        }
+    }
+
     val onRemoveList = ArrayList<() -> Unit>()
     actual val onRemove: OnRemoveHandler = {
         onRemoveList.add(it)
@@ -14,10 +26,29 @@ actual class ViewContext() {
         onRemoveList.clear()
     }
 
-    inline fun <T : HTMLElement> element(name: String, setup: T.() -> Unit): T {
-        return (document.createElement(name) as T).apply {
-            ListeningLifecycleStack.useIn(this.onRemove) {
+    var popCount = 0
+    inline fun <T : HTMLElement> containsNext(name: String, setup: T.() -> Unit): ViewWrapper {
+        val element = (document.createElement(name) as T)
+        ListeningLifecycleStack.useIn(element.onRemove) {
+            setup(element)
+        }
+        println("Start containsNext")
+        stack.add(element)
+        popCount++
+        return ViewWrapper
+    }
+
+    inline fun <T : HTMLElement> element(name: String, setup: T.() -> Unit) {
+        (document.createElement(name) as T).apply {
+            stackUse(this) {
                 setup()
+            }
+            stack.last().appendChild(this)
+            while (popCount > 0) {
+                println("End containsNext")
+                val item = stack.removeLast()
+                stack.last().appendChild(item)
+                popCount--
             }
         }
     }
@@ -64,19 +95,18 @@ private object RemoveListeners {
     }
 }
 
-//@Suppress("ACTUAL_WITHOUT_EXPECT")
-//actual typealias SimpleLabel = HTMLParagraphElement
-//actual inline fun ViewContext.simpleLabel(setup: SimpleLabel.() -> Unit): SimpleLabel = element("p", setup)
-//actual var SimpleLabel.text: String
-//    get() = this.textContent ?: ""
-//    set(value) {
-//        this.textContent = value
-//    }
-//
-//
-//@Suppress("ACTUAL_WITHOUT_EXPECT")
-//actual typealias Column = HTMLDivElement
-//actual inline fun ViewContext.column(vararg views: NView, setup: Column.() -> Unit): Column = element("div") {
-//    views.forEach { appendChild(it) }
-//    setup()
-//}
+@Suppress("ACTUAL_WITHOUT_EXPECT")
+actual typealias SimpleLabel = HTMLParagraphElement
+actual inline fun ViewContext.simpleLabel(setup: SimpleLabel.() -> Unit): Unit = element("p", setup)
+actual var SimpleLabel.text: String
+    get() = this.textContent ?: ""
+    set(value) {
+        this.textContent = value
+    }
+
+
+@Suppress("ACTUAL_WITHOUT_EXPECT")
+actual typealias Column = HTMLDivElement
+actual inline fun ViewContext.column(setup: Column.() -> Unit): Unit = element("div", setup)
+
+actual fun ViewContext.padding(): ViewWrapper = containsNext<HTMLDivElement>("div") { style.padding = "1rem" }

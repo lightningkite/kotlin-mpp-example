@@ -8,32 +8,45 @@ expect class Font
 
 expect val systemDefaultFont: Font
 
-sealed class ImageSource
-data class ImagePath(val fillColor: Color, val lineColor: Color, val lineWidth: Dimension, val path: String): ImageSource()
+expect sealed class ImageSource()
+data class ImageVector(val paths: List<Path>): ImageSource() {
+    data class Path(val fillColor: Paint, val strokeColor: Color, val strokeWidth: Dimension, val path: String)
+}
 data class ImageRemote(val url: String): ImageSource()
 class ImageRaw(val data: ByteArray): ImageSource()
 expect class ImageResource: ImageSource
 
-expect class Drawable
-expect fun Drawable(color: Color): Drawable
-
-//expect fun Drawable(
-//    fillColor: Color,
-//    strokeColor: Color,
-//    strokeWidth: Dimension,
-//    corners: CornerRadii? = CornerRadii(DimensionZero)
-//): Drawable
-//
-//expect fun Drawable(
-//    normal: Drawable,
-//    down: Drawable? = null,
-//    hover: Drawable? = null,
-//    disabled: Drawable? = null,
-//    checked: Drawable? = null,
-//    checkedDown: Drawable? = null,
-//    checkedHover: Drawable? = null,
-//    checkedDisabled: Drawable? = null,
-//): Drawable
+data class Background(
+    val fill: Paint,
+    val stroke: Color,
+    val strokeWidth: Dimension,
+    val corners: CornerRadii?,
+) {
+    companion object {
+        fun capsule(
+            fill: Paint,
+            stroke: Color,
+            strokeWidth: Dimension,
+        ) = Background(fill, stroke, strokeWidth, corners = null)
+        fun rectangle(
+            fill: Paint,
+            stroke: Color,
+            strokeWidth: Dimension,
+        ) = Background(fill, stroke, strokeWidth, corners = CornerRadii(DimensionZero))
+        fun roundedRectangle(
+            fill: Paint,
+            stroke: Color,
+            strokeWidth: Dimension,
+            corners: CornerRadii
+        ) = Background(fill, stroke, strokeWidth, corners = corners)
+        fun roundedRectangle(
+            fill: Paint,
+            stroke: Color,
+            strokeWidth: Dimension,
+            cornerRadius: Dimension
+        ) = Background(fill, stroke, strokeWidth, corners = CornerRadii(cornerRadius))
+    }
+}
 
 data class CornerRadii(
     val topLeft: Dimension,
@@ -88,7 +101,7 @@ data class Action(
 enum class ImageMode { Fit, Crop, Stretch, NoScale }
 data class Tab(
     val title: String,
-    val icon: Image,
+    val icon: ImageSource,
     val onSelect: () -> Unit,
     val onReselect: () -> Unit = onSelect,
 )

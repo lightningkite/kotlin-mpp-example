@@ -11,10 +11,6 @@ fun main() {
         counter.latest++
         println(counter.latest)
     }, 1000)
-    val context = ViewContext()
-    document.body!!.appendChild(context.myView(counter))
-
-    document.body!!.appendChild(context.element<HTMLParagraphElement>("p") {
-        ::textContent { counter.value.toString() }
-    })
+    val context = ViewContext(document.body!!)
+    context.myView(counter)
 }

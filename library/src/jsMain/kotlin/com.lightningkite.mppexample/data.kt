@@ -12,11 +12,5 @@ actual typealias Font = String
 
 actual val systemDefaultFont: Font get() = "Helvetica"
 
-private fun addRule(str: String) =
-    (document.styleSheets.get(0) as CSSStyleSheet).let { it.insertRule(str, it.cssRules.length) }
-
-actual class Drawable(val css: Map<String, String>) {
-    constructor(css: String):this(mapOf("&" to css))
-}
-
-actual fun Drawable(color: Color) = Drawable(mapOf("&" to "background-color: ${color.toWeb()}"))
+actual sealed class ImageSource actual constructor()
+actual class ImageResource(val relativeUrl: String) : ImageSource()

@@ -13,11 +13,9 @@ object ListeningLifecycleStack {
     fun onRemove(action: () -> Unit) = stack.last()(action)
     inline fun useIn(noinline handler: OnRemoveHandler, action: () -> Unit) {
         stack.add(handler)
-        println("Added handler to stack")
         try {
             action()
         } finally {
-            println("Removed handler from stack")
             if (stack.removeLast() != handler)
                 throw ConcurrentModificationException("Multiple threads have been attempting to instantiate views at the same time.")
         }

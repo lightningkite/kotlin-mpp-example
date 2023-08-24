@@ -1,14 +1,27 @@
 package com.lightningkite.mppexample
 
-import kotlin.jvm.JvmInline
-import kotlin.math.*
+import kotlin.math.max
+import kotlin.math.min
+
+sealed interface Paint
+
+data class GradientStop(val ratio: Float, val color: Color)
+data class LinearGradient(
+    val stops: List<GradientStop>,
+    val angle: Angle = Angle.zero,
+    val screenStatic: Boolean = false,
+): Paint
+data class RadialGradient(
+    val stops: List<GradientStop>,
+    val screenStatic: Boolean = false,
+): Paint
 
 data class Color(
     val alpha: Float = 0f,
     val red: Float = 0f,
     val green: Float = 0f,
     val blue: Float = 0f
-) {
+): Paint {
 
     fun toInt(): Int {
         return (alpha.byteize() shl 24) or (red.byteize() shl 16) or (green.byteize() shl 8) or (blue.byteize())
@@ -162,48 +175,6 @@ data class HSVColor(
             )
         }
     }
-}
-
-@JvmInline
-value class Angle(val circles: Float) {
-    companion object {
-        const val RADIANS_PER_CIRCLE = (PI * 2).toFloat()
-        const val DEGREES_PER_CIRCLE = 360f
-        fun degrees(degrees: Float): Angle = Angle(degrees / DEGREES_PER_CIRCLE)
-        fun radians(radians: Float): Angle = Angle(radians / RADIANS_PER_CIRCLE)
-        fun atan2(y: Float, x: Float) = radians(kotlin.math.atan2(y, x))
-        val zero = Angle(0f)
-        val circle = Angle(1f)
-        val halfCircle = Angle(.5f)
-        val quarterCircle = Angle(.25f)
-        val eighthCircle = Angle(.125f)
-        val thirdCircle = Angle(1 / 3.0f)
-    }
-
-    inline val degrees: Float get() = circles * DEGREES_PER_CIRCLE
-    inline val radians: Float get() = circles * RADIANS_PER_CIRCLE
-
-    //For absolute angles
-    inline infix fun angleTo(other: Angle): Angle {
-        return Angle((other.circles - this.circles + .5f).positiveRemainder(1f) - .5f)
-    }
-
-    //For relative angles
-    inline operator fun plus(other: Angle): Angle = Angle(this.circles + other.circles)
-
-    inline operator fun minus(other: Angle): Angle = Angle(this.circles - other.circles)
-    inline operator fun times(scale: Float) = Angle(this.circles * scale)
-    inline operator fun div(by: Float) = Angle(this.circles / by)
-
-    fun normalized(): Angle = Angle(this.circles.plus(.5f).positiveRemainder(1f).minus(.5f))
-
-    inline fun sin(): Float = sin(radians)
-    inline fun cos(): Float = cos(radians)
-    inline fun tan(): Float = tan(radians)
-
-    inline operator fun unaryMinus() = Angle(-circles)
-
-    val absoluteValue: Angle get() = Angle(circles.absoluteValue)
 }
 
 fun Byte.positiveRemainder(other: Byte): Byte = this.rem(other).plus(other).rem(other).toByte()
